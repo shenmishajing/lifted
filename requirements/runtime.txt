@@ -1,1 +1,4 @@
 lightning-template
+openai
+pandas
+transformers
