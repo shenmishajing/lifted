@@ -1,0 +1,24 @@
+data:
+    class_path: lightning_template.LightningDataModule
+    init_args:
+        dataset_cfg:
+            split_info:
+                split_format_to: [ann_file_name]
+                split_name_map:
+                    # val: valid
+                    # test: test
+                    # predict: test
+                    val: train
+                    test: train
+                    predict: train
+            train:
+                class_path: datasets.HINTDataset
+                init_args:
+                    ann_file_name: phase_I_${split}
+                    data_root: data/clinical-trial-outcome-prediction/data
+        dataloader_cfg:
+            batch_size: 32
+            # num_workers: 8
+            # persistent_workers: true
+            prefetch_factor: null
+            pin_memory: true
