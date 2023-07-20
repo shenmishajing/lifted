@@ -1,0 +1,62 @@
+model:
+    class_path: lightning_template.LightningModule
+    init_args:
+        model:
+            class_path: models.MMCTO
+            init_args:
+                encoders:
+                    class_path: torch.nn.ModuleDict
+                    init_args:
+                        modules:
+                            table:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            batch_first: true
+                                    num_layers: 2
+                            smiless:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            batch_first: true
+                                    num_layers: 2
+                            description:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            batch_first: true
+                                    num_layers: 2
+                            drugs:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            batch_first: true
+                                    num_layers: 2
+                            disease:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            batch_first: true
+                                    num_layers: 2
+                vocab_size: 28996
+                model_dim: 128
