@@ -5,12 +5,9 @@ data:
             split_info:
                 split_format_to: [ann_file_name]
                 split_name_map:
-                    # val: valid
-                    # test: test
-                    # predict: test
-                    val: train
-                    test: train
-                    predict: train
+                    val: valid
+                    test: test
+                    predict: test
             train:
                 class_path: datasets.HINTDataset
                 init_args:
