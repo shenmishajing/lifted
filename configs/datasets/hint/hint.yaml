@@ -8,7 +8,7 @@ data:
                     val: valid
                     test: test
                     predict: test
-            train:
+            fit:
                 class_path: datasets.HINTDataset
                 init_args:
                     ann_file_name: phase_I_${split}
@@ -19,3 +19,19 @@ data:
             # persistent_workers: true
             prefetch_factor: null
             pin_memory: true
+
+model:
+    init_args:
+        evaluator_cfg:
+            class_path: torchmetrics.MetricCollection
+            init_args:
+                metrics:
+                    - class_path: torchmetrics.AveragePrecision
+                      init_args:
+                          task: binary
+                    - class_path: torchmetrics.F1Score
+                      init_args:
+                          task: binary
+                    - class_path: torchmetrics.AUROC
+                      init_args:
+                          task: binary

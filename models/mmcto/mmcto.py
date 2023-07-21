@@ -102,7 +102,6 @@ class MMCTO(nn.Module):
 
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
-        return {
-            "loss": self.loss(pred, data["label"].float()),
-            "acc": (pred.round() == data["label"]).float().mean(),
-        }
+        loss = self.loss(pred, data["label"].float())
+
+        return {"log_dict": {"loss": loss}, "pred": pred, "target": data["label"]}
