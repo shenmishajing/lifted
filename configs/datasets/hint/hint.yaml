@@ -1,3 +1,5 @@
+__base__: ../../metrics/classification.yaml
+
 data:
     class_path: lightning_template.LightningDataModule
     init_args:
@@ -19,19 +21,3 @@ data:
             # persistent_workers: true
             prefetch_factor: null
             pin_memory: true
-
-model:
-    init_args:
-        evaluator_cfg:
-            class_path: torchmetrics.MetricCollection
-            init_args:
-                metrics:
-                    - class_path: torchmetrics.AveragePrecision
-                      init_args:
-                          task: binary
-                    - class_path: torchmetrics.F1Score
-                      init_args:
-                          task: binary
-                    - class_path: torchmetrics.AUROC
-                      init_args:
-                          task: binary
