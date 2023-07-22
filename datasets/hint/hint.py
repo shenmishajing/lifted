@@ -3,9 +3,8 @@ import os
 
 import pandas as pd
 import torch
+import xmltodict
 from mmengine.dataset import BaseDataset
-
-# Load model directly
 from transformers import AutoTokenizer
 
 
@@ -27,7 +26,7 @@ class HINTDataset(BaseDataset):
             data_prefix = dict(
                 data_path="",
                 table_path="cache/processed",
-                drug_description_path="drugbank_mini.csv",
+                drug_description_path="drugbank/drugbank_database.json",
             )
 
         if max_lengths is None:
@@ -36,7 +35,7 @@ class HINTDataset(BaseDataset):
             )
         self.max_lengths = max_lengths
 
-        self.tokenizer = tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
         super().__init__(data_prefix=data_prefix, **kwargs)
 
     @staticmethod
@@ -57,7 +56,6 @@ class HINTDataset(BaseDataset):
         return res
 
     def load_data_list(self):
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         data = pd.read_csv(
             os.path.join(self.data_prefix["data_path"], f"{self.ann_file_name}.csv")
         )
@@ -68,9 +66,7 @@ class HINTDataset(BaseDataset):
                 ),
             )
         )
-        drug_description = pd.read_csv(self.data_prefix["drug_description_path"])
-        drug_description["name"] = drug_description["name"].str.lower()
-        drug_description = drug_description.set_index("name").to_dict()["description.1"]
+        drug_description = json.load(open(self.data_prefix["drug_description_path"]))
 
         data_list = []
         for i, row in data.iterrows():
@@ -78,40 +74,41 @@ class HINTDataset(BaseDataset):
                 data_list.append(
                     {
                         "label": torch.tensor(row["label"], dtype=torch.long),
-                        "smiless": tokenizer(
+                        "smiless": self.tokenizer(
                             eval(row["smiless"]),
                             padding="max_length",
                             max_length=self.max_lengths["smiless"],
                             return_tensors="pt",
                             return_token_type_ids=False,
                         ),
-                        "table": tokenizer(
+                        "table": self.tokenizer(
                             table_data[i],
                             padding="max_length",
                             max_length=self.max_lengths["table"],
                             return_tensors="pt",
                             return_token_type_ids=False,
                         ),
-                        "drugs": tokenizer(
-                            eval(row["drugs"].lower()),
+                        "drugs": self.tokenizer(
+                            eval(row["drugs"]),
                             padding="max_length",
                             max_length=self.max_lengths["drugs"],
                             return_tensors="pt",
                             return_token_type_ids=False,
                         ),
-                        "disease": tokenizer(
-                            eval(row["diseases"].lower()),
+                        "disease": self.tokenizer(
+                            eval(row["diseases"]),
                             padding="max_length",
                             max_length=self.max_lengths["disease"],
                             return_tensors="pt",
                             return_token_type_ids=False,
                         ),
-                        "description": tokenizer(
+                        "description": self.tokenizer(
                             [
                                 drug_description[drug_name]
                                 if drug_name in drug_description
+                                and drug_description[drug_name]
                                 else "This is a drug."
-                                for drug_name in eval(row["drugs"].lower())
+                                for drug_name in eval(row["drugs"])
                             ],
                             padding="max_length",
                             max_length=self.max_lengths["description"],
@@ -122,6 +119,13 @@ class HINTDataset(BaseDataset):
                 )
 
         return data_list
+
+
+def cache_drug_description():
+    data_path = "data/clinical-trial-outcome-prediction/data/drugbank/drugbank_database"
+    data = xmltodict.parse(open(data_path + ".xml").read())["drugbank"]["drug"]
+    data = {drug["name"]: drug["description"] for drug in data}
+    json.dump(data, open(data_path + ".json", "w"), indent=4)
 
 
 def main():
