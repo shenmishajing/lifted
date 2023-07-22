@@ -10,7 +10,7 @@ optimizer_config:
             init_args:
                 milestones: [8, 11]
         warmup_config:
-            warmup_iters: 500
+            warmup_iters: 50
 
 trainer:
     max_epochs: 12
