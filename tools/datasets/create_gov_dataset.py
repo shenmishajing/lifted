@@ -27,7 +27,7 @@ def get_icd_from_nih(disease_name):
 
 
 def xmlfile2results(data_root, xml_file):
-    icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
+    # icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
     tree = ET.parse(os.path.join(data_root, xml_file))
     root = tree.getroot()
     nctid = root.find("id_info").find("nct_id").text  ### nctid: 'NCT00000102'
@@ -66,7 +66,22 @@ def xmlfile2results(data_root, xml_file):
     except:
         criteria = ""
 
-    return [nctid, status, why_stop, phase, diseases, icd_codes, drugs, criteria]
+    try:
+        brief_summary = root.find("brief_summary").find("textblock").text
+    except:
+        brief_summary = ""
+
+    return [
+        nctid,
+        status,
+        why_stop,
+        phase,
+        diseases,
+        icd_codes,
+        drugs,
+        criteria,
+        brief_summary,
+    ]
 
 
 def get_disease_name(data_root, xml_file):
@@ -194,6 +209,7 @@ def get_data(data_root, num_process=None):
             "icd_codes",
             "drugs",
             "criteria",
+            "brief_summary",
         ],
     )
     data.to_csv(os.path.join(data_root, "data.csv"), index=False)
@@ -202,9 +218,9 @@ def get_data(data_root, num_process=None):
 def main():
     data_root = "data/clinical_trials_gov"
 
-    get_all_disease_names(data_root)
-    get_icd_code_dict(data_root)
-    # get_data(data_root)
+    # get_all_disease_names(data_root)
+    # get_icd_code_dict(data_root)
+    get_data(data_root, 0)
 
 
 if __name__ == "__main__":
