@@ -27,6 +27,7 @@ def get_icd_from_nih(disease_name):
 
 
 def xmlfile2results(data_root, xml_file):
+    icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
     tree = ET.parse(os.path.join(data_root, xml_file))
     root = tree.getroot()
     nctid = root.find("id_info").find("nct_id").text  ### nctid: 'NCT00000102'
@@ -55,7 +56,10 @@ def xmlfile2results(data_root, xml_file):
         phase = ""
     diseases = [i.text for i in root.findall("condition")]  ### disease
 
-    icd_codes = None
+    icd_codes = set()
+    for disease in diseases:
+        icd_codes.update(icd_code_dict[disease])
+    icd_codes = sorted(icd_codes)
 
     try:
         criteria = root.find("eligibility").find("criteria").find("textblock").text
@@ -65,90 +69,142 @@ def xmlfile2results(data_root, xml_file):
     return [nctid, status, why_stop, phase, diseases, icd_codes, drugs, criteria]
 
 
-def get_data_without_icd_codes(data_root, num_process=None):
-    if not os.path.exists(os.path.join(data_root, "data_without_icd_codes.json")):
-        data_path = os.path.join(data_root, "data.xml")
-        data_names = open(data_path).read().split("\n")
-        data_names = [name for name in data_names if name]
+def get_disease_name(data_root, xml_file):
+    root = ET.parse(os.path.join(data_root, xml_file)).getroot()
 
-        if num_process is None:
-            num_process = cpu_count(False)
-
-        if num_process > 1:
-            num_process = min(num_process, len(data_names))
-            with ProcessPoolExecutor(num_process) as executor:
-                data = list(
-                    tqdm(
-                        executor.map(
-                            xmlfile2results,
-                            [data_root] * len(data_names),
-                            data_names,
-                            chunksize=len(data_names) // (num_process * 4),
-                        ),
-                        total=len(data_names),
-                        desc="data_without_icd_codes",
-                    )
-                )
-        else:
-            data = []
-            for data_name in tqdm(data_names, desc="data_without_icd_codes"):
-                data.append(xmlfile2results(data_root, data_name))
-
-        data = [i for i in data if i]
-
-        json.dump(
-            data,
-            open(os.path.join(data_root, "data_without_icd_codes.json"), "w"),
-            indent=4,
-        )
+    return set([i.text for i in root.findall("condition")])
 
 
-def get_icd(row):
-    icd_codes = set()
-    for disease in row[4]:
-        icd_codes.update(get_icd_from_nih(disease))
-    row[5] = sorted(icd_codes)
-    return row
+def get_all_disease_names(data_root, num_process=None):
+    if os.path.exists(os.path.join(data_root, "disease_names.json")):
+        return
+
+    data_path = os.path.join(data_root, "data.xml")
+    data_names = open(data_path).read().split("\n")
+    data_names = [name for name in data_names if name]
+
+    disease_names = set()
+
+    if num_process is None:
+        num_process = cpu_count(False)
+
+    if num_process > 1:
+        num_process = min(num_process, len(data_names))
+        with ProcessPoolExecutor(num_process) as executor:
+            for names in tqdm(
+                executor.map(
+                    get_disease_name,
+                    [data_root] * len(data_names),
+                    data_names,
+                    chunksize=len(data_names) // (num_process * 4),
+                ),
+                total=len(data_names),
+                desc="get_all_disease_names",
+            ):
+                disease_names.update(names)
+    else:
+        for data_name in tqdm(data_names, desc="get_all_disease_names"):
+            disease_names.update(get_disease_name(data_root, data_name))
+
+    json.dump(
+        list(disease_names),
+        open(os.path.join(data_root, "disease_names.json"), "w"),
+        indent=4,
+    )
+
+
+def get_icd_code_dict(data_root, num_process=None):
+    if os.path.exists(os.path.join(data_root, "icd_code_dict.json")):
+        return
+
+    disease_names = json.load(open(os.path.join(data_root, "disease_names.json")))
+    icd_code_dict = {}
+
+    if num_process is None:
+        num_process = cpu_count(False)
+
+    if num_process > 1:
+        num_process = min(num_process, len(disease_names))
+        with ThreadPoolExecutor(num_process) as executor:
+            for name, icd_code in zip(
+                disease_names,
+                tqdm(
+                    executor.map(
+                        get_icd_from_nih,
+                        disease_names,
+                        chunksize=len(disease_names) // (num_process * 4),
+                    ),
+                    total=len(disease_names),
+                    desc="get_icd_code_dict",
+                ),
+            ):
+                icd_code_dict[name] = icd_code
+    else:
+        for name in tqdm(disease_names, desc="get_icd_code_dict"):
+            icd_code_dict[name] = get_icd_from_nih(name)
+
+    json.dump(
+        icd_code_dict,
+        open(os.path.join(data_root, "icd_code_dict.json"), "w"),
+        indent=4,
+    )
 
 
 def get_data(data_root, num_process=None):
-    if not os.path.exists(os.path.join(data_root, "data.csv")):
-        data = json.load(open(os.path.join(data_root, "data_without_icd_codes.json")))
+    if os.path.exists(os.path.join(data_root, "data.json")):
+        return
 
-        if num_process is None:
-            num_process = cpu_count()
+    data_path = os.path.join(data_root, "data.xml")
+    data_names = open(data_path).read().split("\n")
+    data_names = [name for name in data_names if name]
 
-        if num_process > 1:
-            num_process = min(num_process, len(data))
-            with ThreadPoolExecutor(num_process) as executor:
-                data = list(
-                    tqdm(executor.map(get_icd, data), total=len(data), desc="data")
+    if num_process is None:
+        num_process = cpu_count(False)
+
+    if num_process > 1:
+        num_process = min(num_process, len(data_names))
+        with ProcessPoolExecutor(num_process) as executor:
+            data = list(
+                tqdm(
+                    executor.map(
+                        xmlfile2results,
+                        [data_root] * len(data_names),
+                        data_names,
+                        chunksize=len(data_names) // (num_process * 4),
+                    ),
+                    total=len(data_names),
+                    desc="data",
                 )
-        else:
-            for row in tqdm(data, desc="data"):
-                get_icd(row)
+            )
+    else:
+        data = []
+        for data_name in tqdm(data_names, desc="data"):
+            data.append(xmlfile2results(data_root, data_name))
 
-        data = pd.DataFrame(
-            data,
-            columns=[
-                "nctid",
-                "status",
-                "why_stop",
-                "phase",
-                "diseases",
-                "icd_codes",
-                "drugs",
-                "criteria",
-            ],
-        )
-        data.to_csv(os.path.join(data_root, "data.csv"), index=False)
+    data = [i for i in data if i]
+
+    data = pd.DataFrame(
+        data,
+        columns=[
+            "nctid",
+            "status",
+            "why_stop",
+            "phase",
+            "diseases",
+            "icd_codes",
+            "drugs",
+            "criteria",
+        ],
+    )
+    data.to_csv(os.path.join(data_root, "data.csv"), index=False)
 
 
 def main():
     data_root = "data/clinical_trials_gov"
 
-    get_data_without_icd_codes(data_root)
-    get_data(data_root)
+    get_all_disease_names(data_root)
+    # get_icd_code_dict(data_root)
+    # get_data(data_root)
 
 
 if __name__ == "__main__":
