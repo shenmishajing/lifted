@@ -107,7 +107,7 @@ def get_all_disease_names(data_root, num_process=None):
             disease_names.update(get_disease_name(data_root, data_name))
 
     json.dump(
-        list(disease_names),
+        sorted(disease_names),
         open(os.path.join(data_root, "disease_names.json"), "w"),
         indent=4,
     )
@@ -203,7 +203,7 @@ def main():
     data_root = "data/clinical_trials_gov"
 
     get_all_disease_names(data_root)
-    # get_icd_code_dict(data_root)
+    get_icd_code_dict(data_root)
     # get_data(data_root)
 
 
