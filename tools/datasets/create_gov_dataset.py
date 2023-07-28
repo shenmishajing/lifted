@@ -27,7 +27,7 @@ def get_icd_from_nih(disease_name):
 
 
 def xmlfile2results(data_root, xml_file):
-    # icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
+    icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
     tree = ET.parse(os.path.join(data_root, xml_file))
     root = tree.getroot()
     nctid = root.find("id_info").find("nct_id").text  ### nctid: 'NCT00000102'
@@ -58,7 +58,11 @@ def xmlfile2results(data_root, xml_file):
 
     icd_codes = set()
     for disease in diseases:
-        icd_codes.update(icd_code_dict[disease])
+        icd_codes.update(
+            icd_code_dict[disease]
+            if disease in icd_code_dict and icd_code_dict[disease]
+            else []
+        )
     icd_codes = sorted(icd_codes)
 
     try:
@@ -90,7 +94,7 @@ def get_disease_name(data_root, xml_file):
     return set([i.text for i in root.findall("condition")])
 
 
-def get_all_disease_names(data_root, num_process=None):
+def get_all_disease_names(data_root, num_process=None, chunksize=100):
     if os.path.exists(os.path.join(data_root, "disease_names.json")):
         return
 
@@ -111,7 +115,7 @@ def get_all_disease_names(data_root, num_process=None):
                     get_disease_name,
                     [data_root] * len(data_names),
                     data_names,
-                    chunksize=len(data_names) // (num_process * 4),
+                    chunksize=chunksize,
                 ),
                 total=len(data_names),
                 desc="get_all_disease_names",
@@ -144,11 +148,7 @@ def get_icd_code_dict(data_root, num_process=None):
             for name, icd_code in zip(
                 disease_names,
                 tqdm(
-                    executor.map(
-                        get_icd_from_nih,
-                        disease_names,
-                        chunksize=len(disease_names) // (num_process * 4),
-                    ),
+                    executor.map(get_icd_from_nih, disease_names),
                     total=len(disease_names),
                     desc="get_icd_code_dict",
                 ),
@@ -165,7 +165,7 @@ def get_icd_code_dict(data_root, num_process=None):
     )
 
 
-def get_data(data_root, num_process=None):
+def get_data(data_root, num_process=None, chunksize=100):
     if os.path.exists(os.path.join(data_root, "data.json")):
         return
 
@@ -185,7 +185,7 @@ def get_data(data_root, num_process=None):
                         xmlfile2results,
                         [data_root] * len(data_names),
                         data_names,
-                        chunksize=len(data_names) // (num_process * 4),
+                        chunksize=chunksize,
                     ),
                     total=len(data_names),
                     desc="data",
@@ -218,9 +218,9 @@ def get_data(data_root, num_process=None):
 def main():
     data_root = "data/clinical_trials_gov"
 
-    # get_all_disease_names(data_root)
-    # get_icd_code_dict(data_root)
-    get_data(data_root, 0)
+    get_all_disease_names(data_root)
+    get_icd_code_dict(data_root)
+    get_data(data_root)
 
 
 if __name__ == "__main__":
