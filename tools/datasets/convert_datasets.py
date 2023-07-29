@@ -151,7 +151,7 @@ def convert_table(name, data_path, output_path, chat_kwargs):
         )
 
 
-def convert_hint(data_path, chat_kwargs):
+def convert_hint(data_path, output_path, chat_kwargs):
     for phase in tqdm(["I", "II", "III"], desc="phase", position=0, leave=False):
         for split in tqdm(
             ["train", "valid", "test"], desc="split", position=1, leave=False
@@ -159,16 +159,16 @@ def convert_hint(data_path, chat_kwargs):
             convert_table(
                 f"phase_{phase}_{split}",
                 data_path,
-                os.path.join(data_path, "cache"),
+                output_path,
                 chat_kwargs,
             )
 
 
-def convert_ct_gov(data_path, chat_kwargs):
+def convert_ct_gov(data_path, output_path, chat_kwargs):
     convert_table(
         "data",
         data_path,
-        os.path.join(data_path, "cache"),
+        output_path,
         chat_kwargs,
     )
 
@@ -178,6 +178,7 @@ def main():
         "hint": {
             "func": convert_hint,
             "data_path": "data/clinical-trial-outcome-prediction/data",
+            "output_path": "text_description",
             "schema_definition": "nctid: identifiers of a clinical trial\n"
             + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
@@ -200,9 +201,39 @@ def main():
                 ],
             },
         },
-        "ct_gov": {
+        "hint_summary": {
             "func": convert_hint,
+            "data_path": "data/clinical-trial-outcome-prediction/data",
+            "output_path": "brief_summary",
+            "schema_definition": "nctid: identifiers of a clinical trial\n"
+            + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            + "diseases: list of disease names.\n"
+            + "icdcodes: list of icd-10 codes of diseases.\n"
+            + "drugs: list of drug names.\n"
+            + "criteria: eligibility criteria.",
+            "chat_kwargs": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "user",
+                        "content": "Here is the schema definition of the table:\n"
+                        + "$schema_definition\n"
+                        + "This is a sample from the table:\n"
+                        + "$linearization\n"
+                        + "Please briefly summary the sample in only one sentence.\n"
+                        + "A brief summary of other sample may look like:\n"
+                        + "This study will test the ability of extended release nifedipine (Procardia XL), a blood pressure medication, to permit a decrease in the dose of glucocorticoid medication children take to treat congenital adrenal hyperplasia (CAH).\n"
+                        + "Note that the example is not a summary of the sample above.\n",
+                    },
+                ],
+            },
+        },
+        "ct_gov": {
+            "func": convert_ct_gov,
             "data_path": "data/clinical_trials_gov",
+            "output_path": "brief_summary",
             "schema_definition": "nctid: identifiers of a clinical trial\n"
             + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
@@ -220,7 +251,7 @@ def main():
                         + "$schema_definition\n"
                         + "This is a sample from the table:\n"
                         + "$linearization\n"
-                        + "Please briefly summary the sample in only one sentence.\n"
+                        + "Please briefly summary the sample in a few sentences.\n"
                         + "A brief summary of other sample may look like:\n"
                         + "This study will test the ability of extended release nifedipine (Procardia XL), a blood pressure medication, to permit a decrease in the dose of glucocorticoid medication children take to treat congenital adrenal hyperplasia (CAH).\n"
                         + "Note that the example is not a summary of the sample above.\n",
@@ -240,7 +271,10 @@ def main():
         chat_kwargs["messages"][-1]["content"] = Template(
             chat_kwargs["messages"][-1]["content"]
         ).safe_substitute(schema_definition=dataset["schema_definition"])
-        dataset["func"](dataset["data_path"], chat_kwargs)
+        output_path = dataset.get("output_path", "cache")
+        output_path = os.path.join(dataset["data_path"], output_path)
+        print(f"convert {dataset_name}")
+        dataset["func"](dataset["data_path"], output_path, chat_kwargs)
 
 
 if __name__ == "__main__":
