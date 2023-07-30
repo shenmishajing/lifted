@@ -99,8 +99,8 @@ def get_llm_results(inputs):
                     raise e
             except Exception as e:
                 try_num += 1
-                print(f"error: {e}, try num: {try_num}, retry after {try_num+10} min")
-                sleep((try_num + 10) * 60)
+                print(f"error: {e}, try num: {try_num}, retry after {try_num} min")
+                sleep(try_num * 60)
 
 
 def convert_table(name, data_path, output_path, chat_kwargs):

@@ -15,7 +15,7 @@ mkdir data
 #### Hint
 
 ```bash
-git clone https://github.com/futianfan/clinical-trial-outcome-prediction.git data
+git clone https://github.com/futianfan/clinical-trial-outcome-prediction.git data/clinical-trial-outcome-prediction
 ```
 
 ### Hint Summary
