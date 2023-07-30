@@ -6,6 +6,12 @@ See [installation docs](docs/installation/installation.md) for details.
 
 ## Prepare
 
+### Openai
+
+```bash
+echo <your-key> > openai_api_key.txt
+```
+
 ### Data
 
 ```bash

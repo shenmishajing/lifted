@@ -241,7 +241,7 @@ def main():
             + "drugs: list of drug names.\n"
             + "criteria: eligibility criteria.",
             "chat_kwargs": {
-                "model": "gpt-3.5-turbo-16k",
+                "model": "gpt-3.5-turbo",
                 "temperature": 0,
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant."},
