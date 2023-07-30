@@ -85,7 +85,7 @@ def get_llm_results(inputs):
         while True:
             try:
                 yield input, openai.ChatCompletion.create(**input)
-                sleep(10)
+                sleep(3)
                 break
             except InvalidRequestError as e:
                 if e.code == "context_length_exceeded":
