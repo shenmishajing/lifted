@@ -25,7 +25,7 @@ class HINTDataset(BaseDataset):
         if data_prefix is None:
             data_prefix = dict(
                 data_path="",
-                table_path="cache/processed",
+                table_path="text_description/processed",
                 drug_description_path="drugbank/drugbank_database.json",
             )
 
