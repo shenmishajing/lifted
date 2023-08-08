@@ -1,0 +1,14 @@
+__base__: hint.yaml
+
+data:
+    init_args:
+        dataset_cfg:
+            fit:
+                init_args:
+                    tokenizer: dmis-lab/biobert-base-cased-v1.1-mnli
+                    max_lengths:
+                        table: 512
+                        smiless: 512
+                        description: 512
+                        drugs: 64
+                        disease: 64

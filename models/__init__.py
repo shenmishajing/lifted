@@ -1,1 +1,2 @@
-from .mmcto import MMCTO as MMCTO
+from .biobert import *
+from .mmcto import *
