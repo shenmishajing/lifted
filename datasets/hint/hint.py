@@ -77,6 +77,7 @@ class HINTDataset(BaseDataset):
                         "smiless": self.tokenizer(
                             eval(row["smiless"]),
                             padding="max_length",
+                            truncation=True,
                             max_length=self.max_lengths["smiless"],
                             return_tensors="pt",
                             return_token_type_ids=False,
@@ -84,6 +85,7 @@ class HINTDataset(BaseDataset):
                         "table": self.tokenizer(
                             table_data[i],
                             padding="max_length",
+                            truncation=True,
                             max_length=self.max_lengths["table"],
                             return_tensors="pt",
                             return_token_type_ids=False,
@@ -91,6 +93,7 @@ class HINTDataset(BaseDataset):
                         "drugs": self.tokenizer(
                             eval(row["drugs"]),
                             padding="max_length",
+                            truncation=True,
                             max_length=self.max_lengths["drugs"],
                             return_tensors="pt",
                             return_token_type_ids=False,
@@ -98,6 +101,7 @@ class HINTDataset(BaseDataset):
                         "disease": self.tokenizer(
                             eval(row["diseases"]),
                             padding="max_length",
+                            truncation=True,
                             max_length=self.max_lengths["disease"],
                             return_tensors="pt",
                             return_token_type_ids=False,
@@ -111,6 +115,7 @@ class HINTDataset(BaseDataset):
                                 for drug_name in eval(row["drugs"])
                             ],
                             padding="max_length",
+                            truncation=True,
                             max_length=self.max_lengths["description"],
                             return_tensors="pt",
                             return_token_type_ids=False,
