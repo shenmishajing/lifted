@@ -10,6 +10,7 @@ class MMCTO(nn.Module):
         encoders: nn.Module,
         vocab_size: int = 28996,
         model_dim: int = 768,
+        num_labels: int = 1,
     ):
         super().__init__()
         self.encoders = encoders
@@ -21,7 +22,7 @@ class MMCTO(nn.Module):
         self.cls_tokens = nn.Parameter(torch.empty(5, model_dim))
 
         self.gate_fc = nn.Linear(2 * model_dim, 3)
-        self.final_fc = nn.Linear(model_dim, 1)
+        self.final_fc = nn.Linear(model_dim, num_labels)
 
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
