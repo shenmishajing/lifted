@@ -21,3 +21,9 @@ data:
             # persistent_workers: true
             prefetch_factor: null
             pin_memory: true
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: hint
