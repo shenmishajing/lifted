@@ -40,18 +40,24 @@ class HINTDataset(BaseDataset):
 
     @staticmethod
     def collate_fn(batch):
-        res = {}
+        def collate(batch):
+            res = {}
 
-        for name in ["label"]:
-            res[name] = torch.stack([b[name] for b in batch], dim=0)
+            for name in ["label"]:
+                res[name] = torch.stack([b[name] for b in batch], dim=0)
 
-        for name in ["table"]:
-            res[name] = {}
-            for k in batch[0][name]:
-                res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
+            for name in ["table"]:
+                res[name] = {}
+                for k in batch[0][name]:
+                    res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
 
-        for name in ["smiless", "drugs", "disease", "description"]:
-            res[name] = [b[name] for b in batch]
+            for name in ["smiless", "drugs", "disease", "description"]:
+                res[name] = [b[name] for b in batch]
+            return res
+
+        res = collate(batch)
+        if "augment" in batch[0]:
+            res["augment"] = collate([b["augment"] for b in batch])
 
         return res
 
@@ -124,6 +130,11 @@ class HINTDataset(BaseDataset):
                 )
 
         return data_list
+
+    def prepare_data(self, idx):
+        data_info = self.get_data_info(idx)
+        data_info["augment"] = self.get_data_info(self._rand_another())
+        return self.pipeline(data_info)
 
 
 def cache_drug_description():

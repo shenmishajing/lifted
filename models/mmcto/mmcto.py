@@ -1,4 +1,5 @@
 import math
+import random
 
 import torch
 from torch import nn
@@ -11,12 +12,16 @@ class MMCTO(nn.Module):
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
+        augment_prob=None,
+        augment_eps=0.1,
     ):
         super().__init__()
         self.encoders = encoders
 
         self.vocab_size = vocab_size
         self.model_dim = model_dim
+        self.augment_prob = {} if augment_prob is None else augment_prob
+        self.augment_eps = augment_eps
 
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(5, model_dim))
@@ -74,10 +79,28 @@ class MMCTO(nn.Module):
             ["smiless", "description", "drugs", "disease"]
         ):
             datas[key] = []
-            for cur_data in data[key]:
+            for batch_idx, cur_data in enumerate(data[key]):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
                 )
+                if key in self.augment_prob:
+                    for idx in range(embedding.shape[0]):
+                        if torch.rand(1) < self.augment_prob[key]:
+                            aug_embedding, _ = self.add_embedding(
+                                **data["augment"][key][batch_idx],
+                                embedding_index=embedding_index
+                            )
+                            aug_idx = random.choice(range(aug_embedding.shape[0]))
+                            lamb = (
+                                torch.rand(
+                                    1, device=embedding.device, dtype=embedding.dtype
+                                )
+                                * self.augment_eps
+                            )
+                            embedding[idx] = (
+                                lamb * aug_embedding[aug_idx]
+                                + (1 - lamb) * embedding[idx]
+                            )
                 datas[key].append(
                     self.encoders[key](embedding, src_key_padding_mask=attetion_mask)[
                         :, 0, ...
@@ -88,6 +111,24 @@ class MMCTO(nn.Module):
         embedding, attetion_mask = self.add_embedding(
             **data["table"], embedding_index=4
         )
+        if "table" in self.augment_prob:
+            mask = (
+                torch.rand(
+                    embedding.shape[0], device=embedding.device, dtype=embedding.dtype
+                )
+                < self.augment_prob["table"]
+            )
+            aug_embedding, _ = self.add_embedding(
+                **data["augment"]["table"], embedding_index=4
+            )
+            lamb = (
+                torch.rand(
+                    embedding.shape[0], device=embedding.device, dtype=embedding.dtype
+                )
+                * self.augment_eps
+            )
+            lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
+            embedding = lamb * aug_embedding + (1 - lamb) * embedding
         datas["table"] = self.encoders["table"](
             embedding, src_key_padding_mask=attetion_mask
         )[:, 0, ...]
