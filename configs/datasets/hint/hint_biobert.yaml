@@ -6,6 +6,10 @@ data:
             fit:
                 init_args:
                     tokenizer: dmis-lab/biobert-base-cased-v1.1-mnli
+                    data_prefix:
+                        data_path: ""
+                        table_path: text_description_anypredict/processed
+                        drug_description_path: drugbank/drugbank_database.json
                     max_lengths:
                         table: 512
                         smiless: 512
