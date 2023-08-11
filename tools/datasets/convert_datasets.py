@@ -249,7 +249,7 @@ def main():
                         + "$schema_definition\n"
                         + "This is a sample from the table:\n"
                         + "$linearization\n"
-                        + "Please briefly summary the sample.\n"
+                        + "Please briefly summary the sample with its value in one sentence. You should describe the important values, like drugs and diseases, instead of just the name of columns in the table.\n"
                         + "A brief summary of other sample may look like:\n"
                         + "This study will test the ability of extended release nifedipine (Procardia XL), a blood pressure medication, to permit a decrease in the dose of glucocorticoid medication children take to treat congenital adrenal hyperplasia (CAH).\n"
                         + "Note that the example is not a summary of the sample above.\n",
