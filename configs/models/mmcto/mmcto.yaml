@@ -58,5 +58,11 @@ model:
                                             nhead: 2
                                             batch_first: true
                                     num_layers: 2
+                augment_prob:
+                    table: 0.5
+                    smiless: 0.5
+                    description: 0.5
+                    drugs: 0.5
+                    disease: 0.5
                 vocab_size: 28996
                 model_dim: 128

@@ -15,6 +15,7 @@ data:
                 init_args:
                     ann_file_name: phase_I_${split}
                     data_root: data/clinical-trial-outcome-prediction/data
+                    augment: true
         dataloader_cfg:
             batch_size: 4
             # num_workers: 8

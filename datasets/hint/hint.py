@@ -3,7 +3,6 @@ import os
 
 import pandas as pd
 import torch
-import xmltodict
 from mmengine.dataset import BaseDataset
 from transformers import AutoTokenizer
 
@@ -19,6 +18,7 @@ class HINTDataset(BaseDataset):
         ann_file_name=None,
         max_lengths=None,
         tokenizer="bert-base-cased",
+        augment=False,
         **kwargs,
     ):
         self.ann_file_name = ann_file_name
@@ -26,7 +26,7 @@ class HINTDataset(BaseDataset):
             data_prefix = dict(
                 data_path="",
                 table_path="text_description/processed",
-                drug_description_path="drugbank/drugbank_database.json",
+                drug_description_path="drugbank/drug_description.json",
             )
 
         if max_lengths is None:
@@ -34,6 +34,7 @@ class HINTDataset(BaseDataset):
                 table=1024, smiless=1024, drugs=64, disease=64, description=1024
             )
         self.max_lengths = max_lengths
+        self.augment = augment
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
         super().__init__(data_prefix=data_prefix, **kwargs)
@@ -133,7 +134,8 @@ class HINTDataset(BaseDataset):
 
     def prepare_data(self, idx):
         data_info = self.get_data_info(idx)
-        data_info["augment"] = self.get_data_info(self._rand_another())
+        if self.augment:
+            data_info["augment"] = self.get_data_info(self._rand_another())
         return self.pipeline(data_info)
 
 

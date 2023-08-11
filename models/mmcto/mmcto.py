@@ -31,6 +31,7 @@ class MMCTO(nn.Module):
 
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
+        self.consistency_loss = nn.L1Loss()
 
         self.reset_parameters()
 
@@ -74,39 +75,46 @@ class MMCTO(nn.Module):
 
     def forward(self, data):
         datas = {}
+        losses = {}
 
         for embedding_index, key in enumerate(
             ["smiless", "description", "drugs", "disease"]
         ):
             datas[key] = []
+            losses[key] = []
             for batch_idx, cur_data in enumerate(data[key]):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
                 )
+                aug_embedding = embedding.clone()
                 if key in self.augment_prob:
                     for idx in range(embedding.shape[0]):
                         if torch.rand(1) < self.augment_prob[key]:
-                            aug_embedding, _ = self.add_embedding(
+                            cur_embedding, _ = self.add_embedding(
                                 **data["augment"][key][batch_idx],
-                                embedding_index=embedding_index
+                                embedding_index=embedding_index,
                             )
-                            aug_idx = random.choice(range(aug_embedding.shape[0]))
+                            aug_idx = random.choice(range(cur_embedding.shape[0]))
                             lamb = (
                                 torch.rand(
                                     1, device=embedding.device, dtype=embedding.dtype
                                 )
                                 * self.augment_eps
                             )
-                            embedding[idx] = (
-                                lamb * aug_embedding[aug_idx]
+                            aug_embedding[idx] = (
+                                lamb * cur_embedding[aug_idx]
                                 + (1 - lamb) * embedding[idx]
                             )
-                datas[key].append(
-                    self.encoders[key](embedding, src_key_padding_mask=attetion_mask)[
-                        :, 0, ...
-                    ].mean(dim=0)
-                )
+                feature = self.encoders[key](
+                    embedding, src_key_padding_mask=attetion_mask
+                )[:, 0, ...].mean(dim=0)
+                aug_feature = self.encoders[key](
+                    aug_embedding, src_key_padding_mask=attetion_mask
+                )[:, 0, ...].mean(dim=0)
+                datas[key].append(feature)
+                losses[key].append(self.consistency_loss(feature, aug_feature))
             datas[key] = torch.stack(datas[key])
+            losses[key] = torch.stack(losses[key]).mean()
 
         embedding, attetion_mask = self.add_embedding(
             **data["table"], embedding_index=4
@@ -118,7 +126,7 @@ class MMCTO(nn.Module):
                 )
                 < self.augment_prob["table"]
             )
-            aug_embedding, _ = self.add_embedding(
+            cur_embedding, _ = self.add_embedding(
                 **data["augment"]["table"], embedding_index=4
             )
             lamb = (
@@ -128,10 +136,15 @@ class MMCTO(nn.Module):
                 * self.augment_eps
             )
             lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
-            embedding = lamb * aug_embedding + (1 - lamb) * embedding
-        datas["table"] = self.encoders["table"](
-            embedding, src_key_padding_mask=attetion_mask
+            aug_embedding = lamb * cur_embedding + (1 - lamb) * embedding
+        feature = self.encoders["table"](embedding, src_key_padding_mask=attetion_mask)[
+            :, 0, ...
+        ]
+        aug_feature = self.encoders["table"](
+            aug_embedding, src_key_padding_mask=attetion_mask
         )[:, 0, ...]
+        datas["table"] = feature
+        losses["table"] = self.consistency_loss(feature, aug_feature)
 
         gate_data = self.gate_fc(torch.cat([datas["drugs"], datas["disease"]], dim=-1))
         gate_data = torch.softmax(gate_data, dim=-1)
@@ -144,6 +157,7 @@ class MMCTO(nn.Module):
 
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
-        loss = self.loss(pred, data["label"].float())
+        losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
+        losses["classification_loss"] = self.loss(pred, data["label"].float())
 
-        return {"log_dict": {"loss": loss}, "pred": pred, "target": data["label"]}
+        return {"log_dict": losses, "pred": pred, "target": data["label"]}
