@@ -26,8 +26,9 @@ def get_icd_from_nih(disease_name):
     return codes
 
 
-def xmlfile2results(data_root, xml_file):
+def xmlfile2results(data_root, xml_file, drug_to_smiles_data_path):
     icd_code_dict = json.load(open(os.path.join(data_root, "icd_code_dict.json")))
+    drug_to_smiles = json.load(open(drug_to_smiles_data_path))
     tree = ET.parse(os.path.join(data_root, xml_file))
     root = tree.getroot()
     nctid = root.find("id_info").find("nct_id").text  ### nctid: 'NCT00000102'
@@ -70,6 +71,14 @@ def xmlfile2results(data_root, xml_file):
     except:
         criteria = ""
 
+    smiless = []
+
+    for drug in drugs:
+        if drug in drug_to_smiles:
+            smiless.append(drug_to_smiles[drug])
+        else:
+            print(f"drug not found: {drug}")
+
     try:
         brief_summary = root.find("brief_summary").find("textblock").text
     except:
@@ -83,6 +92,7 @@ def xmlfile2results(data_root, xml_file):
         diseases,
         icd_codes,
         drugs,
+        smiless,
         criteria,
         brief_summary,
     ]
@@ -166,7 +176,7 @@ def get_icd_code_dict(data_root, num_process=None):
 
 
 def get_data(data_root, num_process=None, chunksize=100):
-    if os.path.exists(os.path.join(data_root, "data.json")):
+    if os.path.exists(os.path.join(data_root, "data.csv")):
         return
 
     data_path = os.path.join(data_root, "data.xml")
@@ -185,6 +195,10 @@ def get_data(data_root, num_process=None, chunksize=100):
                         xmlfile2results,
                         [data_root] * len(data_names),
                         data_names,
+                        [
+                            "data/clinical-trial-outcome-prediction/data/drugbank/drug_smiless.json"
+                        ]
+                        * len(data_names),
                         chunksize=chunksize,
                     ),
                     total=len(data_names),
@@ -194,7 +208,13 @@ def get_data(data_root, num_process=None, chunksize=100):
     else:
         data = []
         for data_name in tqdm(data_names, desc="data"):
-            data.append(xmlfile2results(data_root, data_name))
+            data.append(
+                xmlfile2results(
+                    data_root,
+                    data_name,
+                    "data/clinical-trial-outcome-prediction/data/drugbank/drug_smiless.json",
+                )
+            )
 
     data = [i for i in data if i]
 
@@ -208,6 +228,7 @@ def get_data(data_root, num_process=None, chunksize=100):
             "diseases",
             "icd_codes",
             "drugs",
+            "smiless",
             "criteria",
             "brief_summary",
         ],
