@@ -137,13 +137,6 @@ class HINTDataset(BaseDataset):
         return self.pipeline(data_info)
 
 
-def cache_drug_description():
-    data_path = "data/clinical-trial-outcome-prediction/data/drugbank/drugbank_database"
-    data = xmltodict.parse(open(data_path + ".xml").read())["drugbank"]["drug"]
-    data = {drug["name"]: drug["description"] for drug in data}
-    json.dump(data, open(data_path + ".json", "w"), indent=4)
-
-
 def main():
     HINTDataset(
         ann_file_name="phase_I_train",
