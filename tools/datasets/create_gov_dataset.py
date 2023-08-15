@@ -77,7 +77,7 @@ def xmlfile2results(data_root, xml_file, drug_to_smiles_data_path):
         if drug in drug_to_smiles:
             smiless.append(drug_to_smiles[drug])
         else:
-            print(f"drug not found: {drug}")
+            return None
 
     try:
         brief_summary = root.find("brief_summary").find("textblock").text
