@@ -266,6 +266,7 @@ def main():
             + "diseases: list of disease names.\n"
             + "icdcodes: list of icd-10 codes of diseases.\n"
             + "drugs: list of drug names.\n"
+            + "smiless: list of SMILES of the drugs.\n"
             + "criteria: eligibility criteria.",
             "chat_kwargs": {
                 "model": "gpt-3.5-turbo",
