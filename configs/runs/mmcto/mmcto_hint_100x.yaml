@@ -1,5 +1,0 @@
-__base__:
-    - ../../default_runtime.yaml
-    - ../../schedules/schedule_100x.yaml
-    - ../../datasets/hint/hint.yaml
-    - ../../models/mmcto/mmcto.yaml

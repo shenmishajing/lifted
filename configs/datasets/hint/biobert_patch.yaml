@@ -1,5 +1,3 @@
-__base__: hint.yaml
-
 data:
     init_args:
         dataset_cfg:

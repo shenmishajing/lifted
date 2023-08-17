@@ -1,0 +1,14 @@
+__base__: hint_phase_I.yaml
+
+data:
+    init_args:
+        dataset_cfg:
+            fit:
+                init_args:
+                    ann_file_name: phase_II_${split}
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: hint_phase_II
