@@ -9,7 +9,7 @@ import pandas as pd
 from openai import InvalidRequestError
 from tqdm import tqdm
 
-from utils import openai
+from project.utils import openai
 
 
 def save_llm_results(llm_results, llm_output_path, name, keys=None):
@@ -289,7 +289,7 @@ def main():
         },
     }
 
-    dataset_names = ["hint_summary"]
+    dataset_names = ["ct_gov"]
     if dataset_names is None:
         dataset_names = datasets.keys()
 
