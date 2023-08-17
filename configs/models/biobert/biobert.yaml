@@ -2,6 +2,6 @@ model:
     class_path: lightning_template.LightningModule
     init_args:
         model:
-            class_path: models.BioBert
+            class_path: project.models.BioBert
             init_args:
                 model: dmis-lab/biobert-base-cased-v1.2
