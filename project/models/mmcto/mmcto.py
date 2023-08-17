@@ -115,7 +115,10 @@ class MMCTO(nn.Module):
                     )[:, 0, ...].mean(dim=0)
                     losses[key].append(self.consistency_loss(feature, aug_feature))
             datas[key] = torch.stack(datas[key])
-            losses[key] = torch.stack(losses[key]).mean()
+            if losses[key]:
+                losses[key] = torch.stack(losses[key]).mean()
+            else:
+                del losses[key]
 
         embedding, attetion_mask = self.add_embedding(
             **data["table"], embedding_index=4
