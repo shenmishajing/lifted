@@ -16,6 +16,14 @@ model:
                         class_path: torchmetrics.AUROC
                         init_args:
                             task: binary
+                    stat:
+                        class_path: torchmetrics.ClasswiseWrapper
+                        init_args:
+                            labels: [tp, fp, tn, fn, support]
+                            metric:
+                                class_path: torchmetrics.StatScores
+                                init_args:
+                                    task: binary
 
 trainer:
     callbacks:
