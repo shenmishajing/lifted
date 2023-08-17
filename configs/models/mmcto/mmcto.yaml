@@ -16,6 +16,7 @@ model:
                                         init_args:
                                             d_model: 128
                                             nhead: 2
+                                            activation: relu
                                             batch_first: true
                                     num_layers: 2
                             smiless:
@@ -26,6 +27,7 @@ model:
                                         init_args:
                                             d_model: 128
                                             nhead: 2
+                                            activation: relu
                                             batch_first: true
                                     num_layers: 2
                             description:
@@ -36,6 +38,7 @@ model:
                                         init_args:
                                             d_model: 128
                                             nhead: 2
+                                            activation: relu
                                             batch_first: true
                                     num_layers: 2
                             drugs:
@@ -46,6 +49,7 @@ model:
                                         init_args:
                                             d_model: 128
                                             nhead: 2
+                                            activation: relu
                                             batch_first: true
                                     num_layers: 2
                             disease:
@@ -56,6 +60,7 @@ model:
                                         init_args:
                                             d_model: 128
                                             nhead: 2
+                                            activation: relu
                                             batch_first: true
                                     num_layers: 2
                 augment_prob:
