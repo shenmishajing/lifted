@@ -3,3 +3,4 @@ openai
 pandas
 transformers
 rdkit
+git+https://github.com/RyanWangZf/pytrial.git@main
