@@ -86,8 +86,13 @@ class MMCTO(nn.Module):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
                 )
-                aug_embedding = embedding.clone()
+                feature = self.encoders[key](
+                    embedding, src_key_padding_mask=attetion_mask
+                )[:, 0, ...].mean(dim=0)
+                datas[key].append(feature)
+
                 if key in self.augment_prob:
+                    aug_embedding = embedding.clone()
                     for idx in range(embedding.shape[0]):
                         if torch.rand(1) < self.augment_prob[key]:
                             cur_embedding, _ = self.add_embedding(
@@ -105,20 +110,21 @@ class MMCTO(nn.Module):
                                 lamb * cur_embedding[aug_idx]
                                 + (1 - lamb) * embedding[idx]
                             )
-                feature = self.encoders[key](
-                    embedding, src_key_padding_mask=attetion_mask
-                )[:, 0, ...].mean(dim=0)
-                aug_feature = self.encoders[key](
-                    aug_embedding, src_key_padding_mask=attetion_mask
-                )[:, 0, ...].mean(dim=0)
-                datas[key].append(feature)
-                losses[key].append(self.consistency_loss(feature, aug_feature))
+                    aug_feature = self.encoders[key](
+                        aug_embedding, src_key_padding_mask=attetion_mask
+                    )[:, 0, ...].mean(dim=0)
+                    losses[key].append(self.consistency_loss(feature, aug_feature))
             datas[key] = torch.stack(datas[key])
             losses[key] = torch.stack(losses[key]).mean()
 
         embedding, attetion_mask = self.add_embedding(
             **data["table"], embedding_index=4
         )
+        feature = self.encoders["table"](embedding, src_key_padding_mask=attetion_mask)[
+            :, 0, ...
+        ]
+        datas["table"] = feature
+
         if "table" in self.augment_prob:
             mask = (
                 torch.rand(
@@ -137,14 +143,10 @@ class MMCTO(nn.Module):
             )
             lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
             aug_embedding = lamb * cur_embedding + (1 - lamb) * embedding
-        feature = self.encoders["table"](embedding, src_key_padding_mask=attetion_mask)[
-            :, 0, ...
-        ]
-        aug_feature = self.encoders["table"](
-            aug_embedding, src_key_padding_mask=attetion_mask
-        )[:, 0, ...]
-        datas["table"] = feature
-        losses["table"] = self.consistency_loss(feature, aug_feature)
+            aug_feature = self.encoders["table"](
+                aug_embedding, src_key_padding_mask=attetion_mask
+            )[:, 0, ...]
+            losses["table"] = self.consistency_loss(feature, aug_feature)
 
         gate_data = self.gate_fc(torch.cat([datas["drugs"], datas["disease"]], dim=-1))
         gate_data = torch.softmax(gate_data, dim=-1)
