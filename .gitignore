@@ -3,3 +3,6 @@ temp
 /wandb
 /work_dirs
 /openai_api_key.txt
+/checkpoints
+/demo_data
+/trial_search
