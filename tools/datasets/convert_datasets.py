@@ -160,7 +160,7 @@ def convert_hint(data_path, output_path, chat_kwargs):
                 f"phase_{phase}_{split}",
                 data_path,
                 output_path,
-                chat_kwargs,
+                copy.deepcopy(chat_kwargs),
             )
 
 
