@@ -19,6 +19,17 @@ model:
                                             activation: relu
                                             batch_first: true
                                     num_layers: 2
+                            summarization:
+                                class_path: torch.nn.TransformerEncoder
+                                init_args:
+                                    encoder_layer:
+                                        class_path: torch.nn.TransformerEncoderLayer
+                                        init_args:
+                                            d_model: 128
+                                            nhead: 2
+                                            activation: relu
+                                            batch_first: true
+                                    num_layers: 2
                             smiless:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
