@@ -9,9 +9,8 @@ class MMCTO(nn.Module):
     def __init__(
         self,
         encoders: nn.Module,
-        input_parts=None,
-        gate_input_parts=None,
         final_input_parts=None,
+        gate_input_parts=None,
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
@@ -21,17 +20,13 @@ class MMCTO(nn.Module):
         super().__init__()
         self.encoders = encoders
 
-        self.input_parts = (
-            ["table", "summarization", "smiless", "description", "drugs", "disease"]
-            if input_parts is None
-            else input_parts
-        )
-        if gate_input_parts is None:
-            gate_input_parts = ["drugs", "disease"]
         if final_input_parts is None:
             final_input_parts = ["table", "summarization", "smiless", "description"]
-        self.gate_input_parts = [p for p in gate_input_parts if p in self.input_parts]
-        self.final_input_parts = [p for p in final_input_parts if p in self.input_parts]
+        if gate_input_parts is None:
+            gate_input_parts = ["drugs", "disease"]
+        self.input_parts = final_input_parts + gate_input_parts
+        self.final_input_parts = final_input_parts
+        self.gate_input_parts = gate_input_parts
         self.vocab_size = vocab_size
         self.model_dim = model_dim
         self.augment_prob = {} if augment_prob is None else augment_prob
