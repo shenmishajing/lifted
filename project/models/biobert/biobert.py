@@ -17,7 +17,9 @@ class BioBert(nn.Module):
         output = self.model(**data["table"], labels=data["label"].float())
 
         return {
-            "log_dict": {"loss": output.loss},
-            "pred": output.logits.sigmoid().squeeze(-1),
-            "target": data["label"],
+            "loss_dict": {"loss": output.loss},
+            "metric_dict": {
+                "preds": output.logits.sigmoid().squeeze(-1),
+                "target": data["label"],
+            },
         }

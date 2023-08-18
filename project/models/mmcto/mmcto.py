@@ -189,4 +189,7 @@ class MMCTO(nn.Module):
         losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
         losses["classification_loss"] = self.loss(pred, data["label"].float())
 
-        return {"log_dict": losses, "pred": pred, "target": data["label"]}
+        return {
+            "loss_dict": losses,
+            "metric_dict": {"preds": pred, "target": data["label"]},
+        }
