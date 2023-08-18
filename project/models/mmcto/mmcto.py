@@ -9,6 +9,9 @@ class MMCTO(nn.Module):
     def __init__(
         self,
         encoders: nn.Module,
+        input_parts=None,
+        gate_input_parts=None,
+        final_input_parts=None,
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
@@ -18,6 +21,17 @@ class MMCTO(nn.Module):
         super().__init__()
         self.encoders = encoders
 
+        self.input_parts = (
+            ["table", "summarization", "smiless", "description", "drugs", "disease"]
+            if input_parts is None
+            else input_parts
+        )
+        if gate_input_parts is None:
+            gate_input_parts = ["drugs", "disease"]
+        if final_input_parts is None:
+            final_input_parts = ["table", "summarization", "smiless", "description"]
+        self.gate_input_parts = [p for p in gate_input_parts if p in self.input_parts]
+        self.final_input_parts = [p for p in final_input_parts if p in self.input_parts]
         self.vocab_size = vocab_size
         self.model_dim = model_dim
         self.augment_prob = {} if augment_prob is None else augment_prob
@@ -26,7 +40,9 @@ class MMCTO(nn.Module):
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(5, model_dim))
 
-        self.gate_fc = nn.Linear(2 * model_dim, 3)
+        self.gate_fc = nn.Linear(
+            len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
+        )
         self.final_fc = nn.Linear(model_dim, num_labels)
 
         self.sigmod = nn.Sigmoid()
@@ -77,9 +93,53 @@ class MMCTO(nn.Module):
         datas = {}
         losses = {}
 
-        for embedding_index, key in enumerate(
-            ["smiless", "description", "drugs", "disease"]
-        ):
+        embedding_index = -1
+
+        for key in ["table", "summarization"]:
+            if key not in self.input_parts:
+                continue
+            embedding_index += 1
+
+            embedding, attetion_mask = self.add_embedding(
+                **data[key], embedding_index=embedding_index
+            )
+            feature = self.encoders[key](embedding, src_key_padding_mask=attetion_mask)[
+                :, 0, ...
+            ]
+            datas[key] = feature
+
+            if key in self.augment_prob:
+                mask = (
+                    torch.rand(
+                        embedding.shape[0],
+                        device=embedding.device,
+                        dtype=embedding.dtype,
+                    )
+                    < self.augment_prob[key]
+                )
+                cur_embedding, _ = self.add_embedding(
+                    **data["augment"][key], embedding_index=embedding_index
+                )
+                lamb = (
+                    torch.rand(
+                        embedding.shape[0],
+                        device=embedding.device,
+                        dtype=embedding.dtype,
+                    )
+                    * self.augment_eps
+                )
+                lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
+                aug_embedding = lamb * cur_embedding + (1 - lamb) * embedding
+                aug_feature = self.encoders[key](
+                    aug_embedding, src_key_padding_mask=attetion_mask
+                )[:, 0, ...]
+                losses[key] = self.consistency_loss(feature, aug_feature)
+
+        for key in ["smiless", "description", "drugs", "disease"]:
+            if key not in self.input_parts:
+                continue
+            embedding_index += 1
+
             datas[key] = []
             losses[key] = []
             for batch_idx, cur_data in enumerate(data[key]):
@@ -120,44 +180,13 @@ class MMCTO(nn.Module):
             else:
                 del losses[key]
 
-        embedding, attetion_mask = self.add_embedding(
-            **data["table"], embedding_index=4
+        gate_data = self.gate_fc(
+            torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
         )
-        feature = self.encoders["table"](embedding, src_key_padding_mask=attetion_mask)[
-            :, 0, ...
-        ]
-        datas["table"] = feature
-
-        if "table" in self.augment_prob:
-            mask = (
-                torch.rand(
-                    embedding.shape[0], device=embedding.device, dtype=embedding.dtype
-                )
-                < self.augment_prob["table"]
-            )
-            cur_embedding, _ = self.add_embedding(
-                **data["augment"]["table"], embedding_index=4
-            )
-            lamb = (
-                torch.rand(
-                    embedding.shape[0], device=embedding.device, dtype=embedding.dtype
-                )
-                * self.augment_eps
-            )
-            lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
-            aug_embedding = lamb * cur_embedding + (1 - lamb) * embedding
-            aug_feature = self.encoders["table"](
-                aug_embedding, src_key_padding_mask=attetion_mask
-            )[:, 0, ...]
-            losses["table"] = self.consistency_loss(feature, aug_feature)
-
-        gate_data = self.gate_fc(torch.cat([datas["drugs"], datas["disease"]], dim=-1))
         gate_data = torch.softmax(gate_data, dim=-1)
         gate_data = (
             gate_data[:, None]
-            * torch.stack(
-                [datas["table"], datas["smiless"], datas["description"]], dim=-1
-            )
+            * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
         ).sum(-1)
 
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)

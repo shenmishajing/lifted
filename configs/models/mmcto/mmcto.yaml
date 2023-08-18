@@ -65,6 +65,7 @@ model:
                                     num_layers: 2
                 augment_prob:
                     table: 0.5
+                    summarization: 0.5
                     smiless: 0.5
                     description: 0.5
                     drugs: 0.5
