@@ -33,7 +33,7 @@ class MMCTO(nn.Module):
         self.augment_eps = augment_eps
 
         self.embedding = nn.Embedding(vocab_size, model_dim)
-        self.cls_tokens = nn.Parameter(torch.empty(5, model_dim))
+        self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
 
         self.gate_fc = nn.Linear(
             len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
