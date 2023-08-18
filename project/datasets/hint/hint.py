@@ -26,12 +26,18 @@ class HINTDataset(BaseDataset):
             data_prefix = dict(
                 data_path="",
                 table_path="text_description/processed",
+                summarization_path="brief_summary/processed",
                 drug_description_path="drugbank/drug_description.json",
             )
 
         if max_lengths is None:
             max_lengths = dict(
-                table=1024, smiless=1024, drugs=64, disease=64, description=1024
+                table=1024,
+                summarization=1024,
+                smiless=1024,
+                drugs=64,
+                disease=64,
+                description=1024,
             )
         self.max_lengths = max_lengths
         self.augment = augment
@@ -73,6 +79,13 @@ class HINTDataset(BaseDataset):
                 ),
             )
         )
+        summarization_data = json.load(
+            open(
+                os.path.join(
+                    self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
+                ),
+            )
+        )
         drug_description = json.load(open(self.data_prefix["drug_description_path"]))
 
         data_list = []
@@ -94,6 +107,14 @@ class HINTDataset(BaseDataset):
                             padding="max_length",
                             truncation=True,
                             max_length=self.max_lengths["table"],
+                            return_tensors="pt",
+                            return_token_type_ids=False,
+                        ),
+                        "summarization": self.tokenizer(
+                            summarization_data[i],
+                            padding="max_length",
+                            truncation=True,
+                            max_length=self.max_lengths["summarization"],
                             return_tensors="pt",
                             return_token_type_ids=False,
                         ),
