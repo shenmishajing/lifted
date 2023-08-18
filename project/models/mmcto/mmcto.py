@@ -35,6 +35,10 @@ class MMCTO(nn.Module):
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
 
+        for key in list(self.encoders):
+            if key not in self.input_parts:
+                del self.encoders[key]
+
         self.gate_fc = nn.Linear(
             len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
         )
