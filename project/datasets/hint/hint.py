@@ -53,7 +53,7 @@ class HINTDataset(BaseDataset):
             for name in ["label"]:
                 res[name] = torch.stack([b[name] for b in batch], dim=0)
 
-            for name in ["table"]:
+            for name in ["table", "summarization"]:
                 res[name] = {}
                 for k in batch[0][name]:
                     res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
