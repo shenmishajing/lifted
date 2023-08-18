@@ -1,3 +1,4 @@
+import argparse
 import copy
 import json
 import os
@@ -173,6 +174,13 @@ def convert_ct_gov(data_path, output_path, chat_kwargs):
     )
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset-names", nargs="+", default=None)
+    args = parser.parse_args()
+    return args
+
+
 def main():
     datasets = {
         "hint": {
@@ -289,11 +297,11 @@ def main():
         },
     }
 
-    dataset_names = ["ct_gov"]
-    if dataset_names is None:
-        dataset_names = datasets.keys()
+    args = parse_args()
+    if args.dataset_names is None:
+        args.dataset_names = datasets.keys()
 
-    for dataset_name in dataset_names:
+    for dataset_name in args.dataset_names:
         dataset = datasets[dataset_name]
         chat_kwargs = dataset["chat_kwargs"]
         chat_kwargs["messages"][-1]["content"] = Template(
