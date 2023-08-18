@@ -1,5 +1,5 @@
 __base__:
     - ../../default_runtime.yaml
     - ../../schedules/schedule_1x.yaml
-    - ../../datasets/hint/hint_biobert.yaml
+    - ../../datasets/hint/hint_biobert_phase_I.yaml
     - ../../models/biobert/biobert.yaml
