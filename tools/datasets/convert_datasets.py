@@ -176,7 +176,7 @@ def convert_ct_gov(data_path, output_path, chat_kwargs):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-names", nargs="+", default=None)
+    parser.add_argument("--tasks", nargs="+", default=None)
     args = parser.parse_args()
     return args
 
@@ -298,10 +298,10 @@ def main():
     }
 
     args = parse_args()
-    if args.dataset_names is None:
-        args.dataset_names = datasets.keys()
+    if args.tasks is None:
+        args.tasks = datasets.keys()
 
-    for dataset_name in args.dataset_names:
+    for dataset_name in args.tasks:
         dataset = datasets[dataset_name]
         chat_kwargs = dataset["chat_kwargs"]
         chat_kwargs["messages"][-1]["content"] = Template(
