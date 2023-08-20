@@ -102,6 +102,6 @@ trainer:
         change_item:
             - - 0
               - init_args:
-                    monitor: test/F1
-                    filename: "epoch:{epoch}-test_f1:{test/F1:.4g}-test_pr_auc:{test/PR-AUC:.4g}-test_roc_auc:{test/ROC-AUC:.4g}.ckpt"
+                    monitor: val/PR-AUC_1
+                    filename: "epoch:{epoch}-val_f1_1:{val/F1_1:.4g}-val_pr_auc_1:{val/PR-AUC_1:.4g}-val_roc_auc_1:{val/ROC-AUC_1:.4g}-val_f1_0:{val/F1_0:.4g}-val_pr_auc_0:{val/PR-AUC_0:.4g}-val_roc_auc_0:{val/ROC-AUC_0:.4g}.ckpt"
                     mode: max
