@@ -6,6 +6,17 @@ data:
             fit:
                 init_args:
                     ann_file_name: phase_II_${split}
+            val:
+                change_item:
+                    - - 0
+                      - init_args:
+                            ann_file_name: phase_II_${split}
+                    - - 1
+                      - init_args:
+                            ann_file_name: phase_II_test
+            test:
+                init_args:
+                    ann_file_name: phase_II_${split}
 
 trainer:
     logger:

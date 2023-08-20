@@ -1,35 +1,107 @@
 model:
     init_args:
         evaluator_cfg:
-            class_path: torchmetrics.MetricCollection
-            init_args:
-                metrics:
-                    PR-AUC:
-                        class_path: torchmetrics.AveragePrecision
-                        init_args:
-                            task: binary
-                    F1:
-                        class_path: torchmetrics.F1Score
-                        init_args:
-                            task: binary
-                    ROC-AUC:
-                        class_path: torchmetrics.AUROC
-                        init_args:
-                            task: binary
-                    stat:
-                        class_path: torchmetrics.ClasswiseWrapper
-                        init_args:
-                            labels: [tp, fp, tn, fn, support]
-                            metric:
-                                class_path: torchmetrics.StatScores
-                                init_args:
-                                    task: binary
+            fit:
+                class_path: torchmetrics.MetricCollection
+                init_args:
+                    metrics:
+                        PR-AUC:
+                            class_path: torchmetrics.AveragePrecision
+                            init_args:
+                                task: binary
+                        F1:
+                            class_path: torchmetrics.F1Score
+                            init_args:
+                                task: binary
+                        ROC-AUC:
+                            class_path: torchmetrics.AUROC
+                            init_args:
+                                task: binary
+                        stat:
+                            class_path: torchmetrics.ClasswiseWrapper
+                            init_args:
+                                labels: [tp, fp, tn, fn, support]
+                                metric:
+                                    class_path: torchmetrics.StatScores
+                                    init_args:
+                                        task: binary
+            val:
+                - class_path: torchmetrics.MetricCollection
+                  init_args:
+                      metrics:
+                          PR-AUC:
+                              class_path: torchmetrics.AveragePrecision
+                              init_args:
+                                  task: binary
+                          F1:
+                              class_path: torchmetrics.F1Score
+                              init_args:
+                                  task: binary
+                          ROC-AUC:
+                              class_path: torchmetrics.AUROC
+                              init_args:
+                                  task: binary
+                          stat:
+                              class_path: torchmetrics.ClasswiseWrapper
+                              init_args:
+                                  labels: [tp, fp, tn, fn, support]
+                                  metric:
+                                      class_path: torchmetrics.StatScores
+                                      init_args:
+                                          task: binary
+                - class_path: torchmetrics.MetricCollection
+                  init_args:
+                      metrics:
+                          PR-AUC:
+                              class_path: torchmetrics.AveragePrecision
+                              init_args:
+                                  task: binary
+                          F1:
+                              class_path: torchmetrics.F1Score
+                              init_args:
+                                  task: binary
+                          ROC-AUC:
+                              class_path: torchmetrics.AUROC
+                              init_args:
+                                  task: binary
+                          stat:
+                              class_path: torchmetrics.ClasswiseWrapper
+                              init_args:
+                                  labels: [tp, fp, tn, fn, support]
+                                  metric:
+                                      class_path: torchmetrics.StatScores
+                                      init_args:
+                                          task: binary
+            test:
+                class_path: torchmetrics.MetricCollection
+                init_args:
+                    metrics:
+                        PR-AUC:
+                            class_path: torchmetrics.AveragePrecision
+                            init_args:
+                                task: binary
+                        F1:
+                            class_path: torchmetrics.F1Score
+                            init_args:
+                                task: binary
+                        ROC-AUC:
+                            class_path: torchmetrics.AUROC
+                            init_args:
+                                task: binary
+                        stat:
+                            class_path: torchmetrics.ClasswiseWrapper
+                            init_args:
+                                labels: [tp, fp, tn, fn, support]
+                                metric:
+                                    class_path: torchmetrics.StatScores
+                                    init_args:
+                                        task: binary
 
 trainer:
     callbacks:
         change_item:
             - - 0
               - init_args:
-                    monitor: val/F1
-                    filename: "epoch:{epoch}-val_f1:{val/F1:.4g}-val_pr_auc:{val/PR-AUC:.4g}-val_roc_auc:{val/ROC-AUC:.4g}.ckpt"
+                    monitor: test/F1
+                    filename: "epoch:{epoch}-test_f1:{test/F1:.4g}-test_pr_auc:{test/PR-AUC:.4g}-test_roc_auc:{test/ROC-AUC:.4g}.ckpt"
                     mode: max

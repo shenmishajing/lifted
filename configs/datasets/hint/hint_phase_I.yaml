@@ -16,8 +16,25 @@ data:
                     ann_file_name: phase_I_${split}
                     data_root: data/clinical-trial-outcome-prediction/data
                     augment: true
+            val:
+                - class_path: project.datasets.HINTDataset
+                  init_args:
+                      ann_file_name: phase_I_${split}
+                      data_root: data/clinical-trial-outcome-prediction/data
+                      augment: true
+                - class_path: project.datasets.HINTDataset
+                  init_args:
+                      ann_file_name: phase_I_test
+                      data_root: data/clinical-trial-outcome-prediction/data
+                      augment: true
+            test:
+                class_path: project.datasets.HINTDataset
+                init_args:
+                    ann_file_name: phase_I_${split}
+                    data_root: data/clinical-trial-outcome-prediction/data
+                    augment: true
         dataloader_cfg:
-            batch_size: 4
+            batch_size: 8
             # num_workers: 8
             # persistent_workers: true
             prefetch_factor: 2
