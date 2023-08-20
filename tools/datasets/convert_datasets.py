@@ -186,8 +186,7 @@ def main():
             "func": convert_hint,
             "data_path": "data/clinical-trial-outcome-prediction/data",
             "output_path": "text_description",
-            "schema_definition": "nctid: identifiers of a clinical trial\n"
-            + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
             + "icdcodes: list of icd-10 codes of diseases.\n"
             + "drugs: list of drug names.\n"
@@ -212,8 +211,7 @@ def main():
             "func": convert_hint,
             "data_path": "data/clinical-trial-outcome-prediction/data",
             "output_path": "text_description_anypredict",
-            "schema_definition": "nctid: identifiers of a clinical trial\n"
-            + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
             + "icdcodes: list of icd-10 codes of diseases.\n"
             + "drugs: list of drug names.\n"
@@ -239,8 +237,7 @@ def main():
             "func": convert_hint,
             "data_path": "data/clinical-trial-outcome-prediction/data",
             "output_path": "brief_summary",
-            "schema_definition": "nctid: identifiers of a clinical trial\n"
-            + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
             + "icdcodes: list of icd-10 codes of diseases.\n"
             + "drugs: list of drug names.\n"
@@ -268,8 +265,7 @@ def main():
             "func": convert_ct_gov,
             "data_path": "data/clinical_trials_gov",
             "output_path": "brief_summary",
-            "schema_definition": "nctid: identifiers of a clinical trial\n"
-            + "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
             + "icdcodes: list of icd-10 codes of diseases.\n"
             + "drugs: list of drug names.\n"
