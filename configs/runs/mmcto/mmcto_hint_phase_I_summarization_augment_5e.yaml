@@ -1,0 +1,18 @@
+__base__:
+    - ../../default_runtime.yaml
+    - ../../schedules/schedule_5e.yaml
+    - ../../datasets/hint/hint_phase_I.yaml
+    - ../../models/mmcto/mmcto.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                final_input_parts: [table, summarization, smiless, description]
+                augment_prob:
+                    table: 0.5
+                    summarization: 0.5
+                    smiless: 0.5
+                    description: 0.5
+                    drugs: 0.5
+                    disease: 0.5

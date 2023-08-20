@@ -1,0 +1,11 @@
+__base__: schedule_1x.yaml
+
+optimizer_config:
+    lr_scheduler:
+        scheduler:
+            class_path: torch.optim.lr_scheduler.CosineAnnealingLR
+            init_args:
+                __delete__: true
+                T_max: 5
+trainer:
+    max_epochs: 5
