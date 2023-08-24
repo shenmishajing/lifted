@@ -80,8 +80,8 @@ def check_llm_results(llm_results):
     return inds
 
 
-def get_llm_results(inputs):
-    for input in tqdm(inputs, desc="llm", position=2, leave=False):
+def get_llm_results(inputs, position=0):
+    for input in tqdm(inputs, desc="llm", position=position):
         try_num = 0
         while True:
             try:
@@ -103,7 +103,7 @@ def get_llm_results(inputs):
                 sleep(try_num * 60)
 
 
-def convert_table(name, data_path, output_path, chat_kwargs):
+def convert_table(name, data_path, output_path, chat_kwargs, position=0):
     llm_keys = ["linearization", "input", "raw", "processed", "back_input"]
     llm_output_path = {k: os.path.join(output_path, k) for k in llm_keys}
 
@@ -139,7 +139,7 @@ def convert_table(name, data_path, output_path, chat_kwargs):
     # get llm results
     inds = check_llm_results(llm_results)
     for ind, (input, result) in zip(
-        inds, get_llm_results([llm_results["input"][ind] for ind in inds])
+        inds, get_llm_results([llm_results["input"][ind] for ind in inds], position)
     ):
         llm_results["raw"][ind] = result
         if result is not None:
@@ -152,15 +152,14 @@ def convert_table(name, data_path, output_path, chat_kwargs):
 
 
 def convert_hint(data_path, output_path, chat_kwargs):
-    for phase in tqdm(["I", "II", "III"], desc="phase", position=0, leave=False):
-        for split in tqdm(
-            ["train", "valid", "test"], desc="split", position=1, leave=False
-        ):
+    for phase in tqdm(["I", "II", "III"], desc="phase", position=0):
+        for split in tqdm(["train", "valid", "test"], desc="split", position=1):
             convert_table(
                 f"phase_{phase}_{split}",
                 data_path,
                 output_path,
                 copy.deepcopy(chat_kwargs),
+                2,
             )
 
 
