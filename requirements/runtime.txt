@@ -1,4 +1,5 @@
 lightning-template
+mmengine
 openai
 pandas
 transformers
