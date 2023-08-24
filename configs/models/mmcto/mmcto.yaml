@@ -15,10 +15,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                             summarization:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
@@ -26,10 +26,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                             smiless:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
@@ -37,10 +37,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                             description:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
@@ -48,10 +48,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                             drugs:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
@@ -59,10 +59,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                             disease:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
@@ -70,10 +70,10 @@ model:
                                         class_path: torch.nn.TransformerEncoderLayer
                                         init_args:
                                             d_model: 128
-                                            nhead: 2
+                                            nhead: 16
                                             activation: relu
                                             batch_first: true
-                                    num_layers: 2
+                                    num_layers: 3
                 # final_input_parts: [table, summarization, smiless, description]
                 final_input_parts: [table, smiless, description]
                 gate_input_parts: [drugs, disease]
