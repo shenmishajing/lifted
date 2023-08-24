@@ -1,0 +1,10 @@
+__base__:
+    - hint_phase_II.yaml
+    - accumulate_grad_batches_patch.yaml
+
+optimizer_config:
+    lr_scheduler:
+        scheduler:
+            init_args:
+                T_max: 627
+        interval: step
