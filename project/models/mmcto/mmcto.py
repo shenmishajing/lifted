@@ -28,6 +28,8 @@ class MMCTO(nn.Module):
             gate_input_parts = ["drugs", "disease"]
         if aux_loss_parts is None:
             aux_loss_parts = []
+        else:
+            aux_loss_parts = [p for p in aux_loss_parts if p in final_input_parts]
         self.input_parts = final_input_parts + gate_input_parts
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
@@ -212,14 +214,14 @@ class MMCTO(nn.Module):
         elif self.moe_method == "concat":
             gate_data = torch.cat([datas[p] for p in self.final_input_parts], dim=-1)
 
-        pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
-
         losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
 
-        for part, m in self.aux_loss_fc.items():
+        for part, fc in self.aux_loss_fc.items():
             losses[f"{part}_aux_loss"] = self.loss(
-                m(datas[part]), data["label"].float()
+                self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
             )
+
+        pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
         losses["classification_loss"] = self.loss(pred, data["label"].float())
 
