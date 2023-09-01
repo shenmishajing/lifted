@@ -11,6 +11,7 @@ class MMCTO(nn.Module):
         encoders: nn.Module,
         final_input_parts=None,
         gate_input_parts=None,
+        aux_loss_parts=None,
         moe_method="weighted",
         vocab_size: int = 28996,
         model_dim: int = 768,
@@ -25,6 +26,8 @@ class MMCTO(nn.Module):
             final_input_parts = ["table", "summarization", "smiless", "description"]
         if gate_input_parts is None:
             gate_input_parts = ["drugs", "disease"]
+        if aux_loss_parts is None:
+            aux_loss_parts = []
         self.input_parts = final_input_parts + gate_input_parts
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
@@ -41,6 +44,9 @@ class MMCTO(nn.Module):
             if key not in self.input_parts:
                 del self.encoders[key]
 
+        self.aux_loss_fc = nn.ModuleDict(
+            {part: nn.Linear(model_dim, num_labels) for part in aux_loss_parts}
+        )
         if moe_method == "weighted":
             self.gate_fc = nn.Linear(
                 len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
@@ -209,6 +215,12 @@ class MMCTO(nn.Module):
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
         losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
+
+        for part, m in self.aux_loss_fc.items():
+            losses[f"{part}_aux_loss"] = self.loss(
+                m(datas[part]), data["label"].float()
+            )
+
         losses["classification_loss"] = self.loss(pred, data["label"].float())
 
         return {
