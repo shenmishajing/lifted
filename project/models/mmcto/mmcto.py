@@ -11,6 +11,7 @@ class MMCTO(nn.Module):
         encoders: nn.Module,
         final_input_parts=None,
         gate_input_parts=None,
+        moe_method="weighted",
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
@@ -27,6 +28,7 @@ class MMCTO(nn.Module):
         self.input_parts = final_input_parts + gate_input_parts
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
+        self.moe_method = moe_method
         self.vocab_size = vocab_size
         self.model_dim = model_dim
         self.augment_prob = {} if augment_prob is None else augment_prob
@@ -39,10 +41,19 @@ class MMCTO(nn.Module):
             if key not in self.input_parts:
                 del self.encoders[key]
 
-        self.gate_fc = nn.Linear(
-            len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
-        )
-        self.final_fc = nn.Linear(model_dim, num_labels)
+        if moe_method == "weighted":
+            self.gate_fc = nn.Linear(
+                len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
+            )
+            self.final_fc = nn.Linear(model_dim, num_labels)
+        elif moe_method == "mean":
+            self.gate_fc = None
+            self.final_fc = nn.Linear(model_dim, num_labels)
+        elif moe_method == "concat":
+            self.gate_fc = None
+            self.final_fc = nn.Linear(
+                model_dim * len(self.final_input_parts), num_labels
+            )
 
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
@@ -179,14 +190,21 @@ class MMCTO(nn.Module):
             else:
                 del losses[key]
 
-        gate_data = self.gate_fc(
-            torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
-        )
-        gate_data = torch.softmax(gate_data, dim=-1)
-        gate_data = (
-            gate_data[:, None]
-            * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
-        ).sum(-1)
+        if self.moe_method == "weighted":
+            gate_data = self.gate_fc(
+                torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
+            )
+            gate_data = torch.softmax(gate_data, dim=-1)
+            gate_data = (
+                gate_data[:, None]
+                * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
+            ).sum(-1)
+        elif self.moe_method == "mean":
+            gate_data = torch.stack(
+                [datas[p] for p in self.final_input_parts], dim=-1
+            ).mean(dim=-1)
+        elif self.moe_method == "concat":
+            gate_data = torch.cat([datas[p] for p in self.final_input_parts], dim=-1)
 
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
