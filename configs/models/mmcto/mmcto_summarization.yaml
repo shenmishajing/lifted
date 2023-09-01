@@ -4,4 +4,4 @@ model:
     init_args:
         model:
             init_args:
-                moe_method: concat
+                final_input_parts: [table, summarization, smiless, description]

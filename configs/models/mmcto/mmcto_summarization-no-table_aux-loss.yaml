@@ -1,0 +1,7 @@
+__base__: mmcto_summarization-no-table.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                aux_loss_parts: [table, smiless, description]
