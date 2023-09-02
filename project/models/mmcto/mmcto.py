@@ -12,6 +12,7 @@ class MMCTO(nn.Module):
         final_input_parts=None,
         gate_input_parts=None,
         aux_loss_parts=None,
+        weighted_aux_loss=False,
         moe_method="weighted",
         vocab_size: int = 28996,
         model_dim: int = 768,
@@ -33,6 +34,7 @@ class MMCTO(nn.Module):
         self.input_parts = final_input_parts + gate_input_parts
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
+        self.weighted_aux_loss = weighted_aux_loss
         self.moe_method = moe_method
         self.vocab_size = vocab_size
         self.model_dim = model_dim
@@ -198,11 +200,28 @@ class MMCTO(nn.Module):
             else:
                 del losses[key]
 
+        aux_losses = {
+            part: self.loss(
+                self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
+            )
+            for part, fc in self.aux_loss_fc.items()
+        }
+        if self.weighted_aux_loss and self.moe_method != "weighted":
+            aux_losses = {
+                k: aux_losses[k] / len(self.final_input_parts)
+                for k in self.final_input_parts
+            }
+
         if self.moe_method == "weighted":
             gate_data = self.gate_fc(
                 torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
             )
             gate_data = torch.softmax(gate_data, dim=-1)
+            if self.weighted_aux_loss:
+                aux_losses = {
+                    k: aux_losses[k] * gate_data[..., idx]
+                    for idx, k in enumerate(self.final_input_parts)
+                }
             gate_data = (
                 gate_data[:, None]
                 * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
@@ -215,11 +234,7 @@ class MMCTO(nn.Module):
             gate_data = torch.cat([datas[p] for p in self.final_input_parts], dim=-1)
 
         losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
-
-        for part, fc in self.aux_loss_fc.items():
-            losses[f"{part}_aux_loss"] = self.loss(
-                self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
-            )
+        losses.update({f"{k}_aux_loss": v for k, v in aux_losses.items()})
 
         pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
 
