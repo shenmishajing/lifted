@@ -207,11 +207,14 @@ class MMCTO(nn.Module):
             )
             for part, fc in self.aux_loss_fc.items()
         }
-        if self.weighted_aux_loss and self.moe_method != "weighted":
-            aux_losses = {
-                k: aux_losses[k].mean() / len(self.aux_loss_fc)
-                for k in self.aux_loss_fc
-            }
+        if self.weighted_aux_loss:
+            if self.moe_method != "weighted":
+                aux_losses = {
+                    k: aux_losses[k].mean() / len(self.aux_loss_fc)
+                    for k in self.aux_loss_fc
+                }
+        else:
+            aux_losses = {k: aux_losses[k].mean() for k in self.aux_loss_fc}
 
         if self.moe_method == "weighted":
             gate_data = self.gate_fc(
