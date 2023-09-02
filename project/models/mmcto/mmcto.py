@@ -67,6 +67,7 @@ class MMCTO(nn.Module):
 
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
+        self.aux_loss = nn.BCELoss(reduction="none")
         self.consistency_loss = nn.L1Loss()
 
         self.reset_parameters()
@@ -201,14 +202,15 @@ class MMCTO(nn.Module):
                 del losses[key]
 
         aux_losses = {
-            part: self.loss(
+            part: self.aux_loss(
                 self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
             )
             for part, fc in self.aux_loss_fc.items()
         }
         if self.weighted_aux_loss and self.moe_method != "weighted":
             aux_losses = {
-                k: aux_losses[k] / len(self.aux_loss_fc) for k in self.aux_loss_fc
+                k: aux_losses[k].mean() / len(self.aux_loss_fc)
+                for k in self.aux_loss_fc
             }
 
         if self.moe_method == "weighted":
@@ -218,7 +220,7 @@ class MMCTO(nn.Module):
             gate_data = torch.softmax(gate_data, dim=-1)
             if self.weighted_aux_loss:
                 aux_losses = {
-                    k: aux_losses[k] * gate_data[..., idx]
+                    k: (aux_losses[k] * gate_data[..., idx]).mean()
                     for idx, k in enumerate(self.final_input_parts)
                     if k in aux_losses
                 }
