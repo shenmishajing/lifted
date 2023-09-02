@@ -208,8 +208,7 @@ class MMCTO(nn.Module):
         }
         if self.weighted_aux_loss and self.moe_method != "weighted":
             aux_losses = {
-                k: aux_losses[k] / len(self.final_input_parts)
-                for k in self.final_input_parts
+                k: aux_losses[k] / len(self.aux_loss_fc) for k in self.aux_loss_fc
             }
 
         if self.moe_method == "weighted":
@@ -221,6 +220,7 @@ class MMCTO(nn.Module):
                 aux_losses = {
                     k: aux_losses[k] * gate_data[..., idx]
                     for idx, k in enumerate(self.final_input_parts)
+                    if k in aux_losses
                 }
             gate_data = (
                 gate_data[:, None]
