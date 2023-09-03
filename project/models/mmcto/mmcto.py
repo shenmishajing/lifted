@@ -12,6 +12,7 @@ class MMCTO(nn.Module):
         final_input_parts=None,
         gate_input_parts=None,
         aux_loss_parts=None,
+        aux_loss_share_fc=False,
         weighted_aux_loss=False,
         moe_method="weighted",
         vocab_size: int = 28996,
@@ -34,6 +35,7 @@ class MMCTO(nn.Module):
         self.input_parts = final_input_parts + gate_input_parts
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
+        self.aux_loss_share_fc = aux_loss_share_fc
         self.weighted_aux_loss = weighted_aux_loss
         self.moe_method = moe_method
         self.vocab_size = vocab_size
@@ -48,9 +50,15 @@ class MMCTO(nn.Module):
             if key not in self.input_parts:
                 del self.encoders[key]
 
-        self.aux_loss_fc = nn.ModuleDict(
-            {part: nn.Linear(model_dim, num_labels) for part in aux_loss_parts}
-        )
+        if aux_loss_share_fc:
+            aux_loss_fc = nn.Linear(model_dim, num_labels)
+            self.aux_loss_fc = nn.ModuleDict(
+                {part: aux_loss_fc for part in aux_loss_parts}
+            )
+        else:
+            self.aux_loss_fc = nn.ModuleDict(
+                {part: nn.Linear(model_dim, num_labels) for part in aux_loss_parts}
+            )
         if moe_method == "weighted":
             self.gate_fc = nn.Linear(
                 len(self.gate_input_parts) * model_dim, len(self.final_input_parts)

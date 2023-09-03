@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_summarization-no-table_aux-loss-weighted-share-fc.yaml
+    - mmcto_summarization-no-table_moe-mean.yaml
