@@ -1,0 +1,38 @@
+name: mmcto_hint_phase_II_summarization-no-table_5e
+method: bayes
+metric:
+    goal: maximize
+    name: val/PR-AUC_1
+program: cli
+parameters:
+    model/init_args/model/init_args/aux_loss_share_fc:
+        values: [true, false]
+    model/init_args/model/init_args/weighted_aux_loss:
+        values: [true, false]
+    model/init_args/model/init_args/moe_method:
+        values: [weighted, mean, concat]
+    model/init_args/model/init_args/aux_loss_parts:
+        values:
+            [
+                [summarization, smiless, description],
+                [summarization, smiless],
+                [summarization, description],
+                [summarization],
+                [],
+            ]
+    optimizer_config/optimizer/init_args/lr:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+    optimizer_config/optimizer/init_args/weight_decay:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+command:
+    - ${env}
+    - "cli"
+    - "fit"
+    - "--config"
+    - "configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_5e.yaml"
+    - "--json-file"
+    - ${args_json_file}
