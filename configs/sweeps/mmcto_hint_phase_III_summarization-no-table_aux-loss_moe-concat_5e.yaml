@@ -1,0 +1,22 @@
+method: random
+metric:
+    goal: maximize
+    name: val/PR-AUC_1
+program: cli
+parameters:
+    optimizer_config/optimizer/init_args/lr:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+    optimizer_config/optimizer/init_args/weight_decay:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+command:
+    - ${env}
+    - "cli"
+    - "fit"
+    - "--config"
+    - "configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_aux-loss_moe-concat_5e.yaml"
+    - "--json-file"
+    - ${args_json_file}
