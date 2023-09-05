@@ -1,4 +1,4 @@
-name: mmcto_hint_phase_I_summarization-no-table_5e
+name: mmcto_hint_phase_II_summarization-no-table_5e_PR-AUC
 method: bayes
 metric:
     goal: maximize
@@ -33,6 +33,6 @@ command:
     - "cli"
     - "fit"
     - "--config"
-    - "configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_5e.yaml"
+    - "configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_5e.yaml"
     - "--json-file"
     - ${args_json_file}

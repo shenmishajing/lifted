@@ -1,8 +1,8 @@
-name: mmcto_hint_phase_III_summarization-no-table_5e
+name: mmcto_hint_phase_I_summarization-no-table_5e_ROC-AUC
 method: bayes
 metric:
     goal: maximize
-    name: val/PR-AUC_1
+    name: val/ROC-AUC_1
 program: cli
 parameters:
     model/init_args/model/init_args/aux_loss_share_fc:
@@ -33,6 +33,6 @@ command:
     - "cli"
     - "fit"
     - "--config"
-    - "configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_5e.yaml"
+    - "configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_5e.yaml"
     - "--json-file"
     - ${args_json_file}
