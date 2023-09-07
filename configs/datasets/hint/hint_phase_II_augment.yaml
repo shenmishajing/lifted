@@ -1,0 +1,3 @@
+__base__:
+    - hint_phase_II.yaml
+    - augment_batch_size_patch.yaml
