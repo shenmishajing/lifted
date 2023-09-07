@@ -1,0 +1,57 @@
+name: mmcto_hint_phase_II_summarization-no-table_5e_gate_inputs_ROC-AUC
+method: bayes
+metric:
+    goal: maximize
+    name: val/ROC-AUC_1
+program: cli
+parameters:
+    model/init_args/model/init_args/gate_input_parts:
+        values:
+            [
+                [summarization, smiless, description, drugs, disease],
+                [summarization, smiless, description, drugs],
+                [summarization, smiless, description, disease],
+                [summarization, smiless, drugs, disease],
+                [summarization, description, drugs, disease],
+                [smiless, description, drugs, disease],
+                [summarization, smiless, description],
+                [summarization, smiless, drugs],
+                [summarization, smiless, disease],
+                [summarization, description, drugs],
+                [summarization, description, disease],
+                [summarization, drugs, disease],
+                [smiless, description, drugs],
+                [smiless, description, disease],
+                [smiless, drugs, disease],
+                [description, drugs, disease],
+                [summarization, smiless],
+                [summarization, description],
+                [summarization, drugs],
+                [summarization, disease],
+                [smiless, description],
+                [smiless, drugs],
+                [smiless, disease],
+                [description, drugs],
+                [description, disease],
+                [summarization],
+                [smiless],
+                [description],
+                [drugs],
+                [disease],
+            ]
+    optimizer_config/optimizer/init_args/lr:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+    optimizer_config/optimizer/init_args/weight_decay:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+command:
+    - ${env}
+    - "cli"
+    - "fit"
+    - "--config"
+    - "configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_5e.yaml"
+    - "--json-file"
+    - ${args_json_file}
