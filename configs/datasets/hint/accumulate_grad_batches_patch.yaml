@@ -1,2 +1,0 @@
-trainer:
-    accumulate_grad_batches: 4

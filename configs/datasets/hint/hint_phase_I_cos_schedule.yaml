@@ -1,6 +1,4 @@
-__base__:
-    - hint_phase_I.yaml
-    - accumulate_grad_batches_patch.yaml
+__base__: hint_phase_I.yaml
 
 optimizer_config:
     lr_scheduler:
