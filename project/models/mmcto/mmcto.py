@@ -32,7 +32,7 @@ class MMCTO(nn.Module):
             aux_loss_parts = []
         else:
             aux_loss_parts = [p for p in aux_loss_parts if p in final_input_parts]
-        self.input_parts = final_input_parts + gate_input_parts
+        self.input_parts = set(final_input_parts + gate_input_parts)
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
         self.aux_loss_share_fc = aux_loss_share_fc
