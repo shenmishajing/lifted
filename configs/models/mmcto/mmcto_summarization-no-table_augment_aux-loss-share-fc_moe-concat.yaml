@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_summarization-no-table_augment_aux-loss-share-fc.yaml
+    - mmcto_summarization-no-table_augment_moe-concat.yaml
