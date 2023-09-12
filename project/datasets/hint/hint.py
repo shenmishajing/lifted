@@ -51,7 +51,8 @@ class HINTDataset(BaseDataset):
             res = {}
 
             for name in ["label"]:
-                res[name] = torch.stack([b[name] for b in batch], dim=0)
+                if name in batch[0]:
+                    res[name] = torch.stack([b[name] for b in batch], dim=0)
 
             for name in ["table", "summarization"]:
                 res[name] = {}
@@ -59,7 +60,8 @@ class HINTDataset(BaseDataset):
                     res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
 
             for name in ["smiless", "drugs", "disease", "description"]:
-                res[name] = [b[name] for b in batch]
+                if name in batch[0]:
+                    res[name] = [b[name] for b in batch]
             return res
 
         res = collate(batch)
@@ -69,87 +71,85 @@ class HINTDataset(BaseDataset):
         return res
 
     def load_data_list(self):
+        def tokenize(text, max_length):
+            return self.tokenizer(
+                text,
+                padding="max_length",
+                truncation=True,
+                max_length=max_length,
+                return_tensors="pt",
+                return_token_type_ids=False,
+            )
+
         data = pd.read_csv(
             os.path.join(self.data_prefix["data_path"], f"{self.ann_file_name}.csv")
         )
-        table_data = json.load(
-            open(
-                os.path.join(
-                    self.data_prefix["table_path"], f"{self.ann_file_name}.json"
-                ),
-            )
+
+        data_path = os.path.join(
+            self.data_prefix["table_path"], f"{self.ann_file_name}.json"
         )
-        summarization_data = json.load(
-            open(
-                os.path.join(
-                    self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
-                ),
+        if os.path.exists(data_path):
+            table_data = json.load(
+                open(
+                    os.path.join(
+                        self.data_prefix["table_path"], f"{self.ann_file_name}.json"
+                    ),
+                )
             )
+        else:
+            table_data = None
+
+        data_path = os.path.join(
+            self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
         )
-        drug_description = json.load(open(self.data_prefix["drug_description_path"]))
+        if os.path.exists(data_path):
+            summarization_data = json.load(
+                open(
+                    os.path.join(
+                        self.data_prefix["summarization_path"],
+                        f"{self.ann_file_name}.json",
+                    ),
+                )
+            )
+        else:
+            summarization_data = None
+
+        if os.path.exists(self.data_prefix["drug_description_path"]):
+            drug_description = json.load(
+                open(self.data_prefix["drug_description_path"])
+            )
+        else:
+            drug_description = None
 
         data_list = []
         for i, row in data.iterrows():
-            if table_data[i]:
-                data_list.append(
-                    {
-                        "label": torch.tensor(row["label"], dtype=torch.long),
-                        "smiless": self.tokenizer(
-                            eval(row["smiless"]),
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["smiless"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                        "table": self.tokenizer(
-                            table_data[i],
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["table"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                        "summarization": self.tokenizer(
-                            summarization_data[i],
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["summarization"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                        "drugs": self.tokenizer(
-                            eval(row["drugs"]),
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["drugs"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                        "disease": self.tokenizer(
-                            eval(row["diseases"]),
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["disease"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                        "description": self.tokenizer(
-                            [
-                                drug_description[drug_name]
-                                if drug_name in drug_description
-                                and drug_description[drug_name]
-                                else "This is a drug."
-                                for drug_name in eval(row["drugs"])
-                            ],
-                            padding="max_length",
-                            truncation=True,
-                            max_length=self.max_lengths["description"],
-                            return_tensors="pt",
-                            return_token_type_ids=False,
-                        ),
-                    }
+            cur_data = {}
+
+            if "label" in row:
+                cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
+
+            for name in ["smiless", "drugs", "disease"]:
+                if name in row:
+                    cur_data[name] = tokenize(eval(row[name]), self.max_lengths[name])
+
+            for name, name_data in zip(
+                ["table", "summarization"], [table_data, summarization_data]
+            ):
+                if name_data:
+                    cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
+
+            if drug_description:
+                cur_data["description"] = tokenize(
+                    [
+                        drug_description[drug_name]
+                        if drug_name in drug_description and drug_description[drug_name]
+                        else "This is a drug."
+                        for drug_name in eval(row["drugs"])
+                    ],
+                    self.max_lengths["description"],
                 )
+
+            data_list.append(cur_data)
 
         return data_list
 
