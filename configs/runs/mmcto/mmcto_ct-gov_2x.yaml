@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_ct-gov_1x.yaml
+    - ../../schedules/schedule_2x.yaml
