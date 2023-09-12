@@ -1,0 +1,34 @@
+data:
+    class_path: lightning_template.LightningDataModule
+    init_args:
+        dataset_cfg:
+            fit:
+                class_path: project.datasets.HINTDataset
+                init_args:
+                    ann_file_name: data
+                    data_root: data/clinical_trials_gov
+                    augment: true
+                    data_prefix:
+                        data_path: ""
+                        table_path: text_description/processed
+                        drug_description_path: ../clinical-trial-outcome-prediction/data/drugbank/drug_description.json
+        dataloader_cfg:
+            batch_size: 32
+            # num_workers: 8
+            # persistent_workers: true
+            prefetch_factor: 2
+            pin_memory: true
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: ct-gov
+    callbacks:
+        change_item:
+            - - 0
+              - init_args:
+                    monitor: null
+                    filename: null
+                    save_top_k: -1
+                    save_best: false
