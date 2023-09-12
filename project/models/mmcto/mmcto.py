@@ -15,6 +15,7 @@ class MMCTO(nn.Module):
         aux_loss_share_fc=False,
         weighted_aux_loss=False,
         moe_method="weighted",
+        pretrain=False,
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
@@ -38,6 +39,7 @@ class MMCTO(nn.Module):
         self.aux_loss_share_fc = aux_loss_share_fc
         self.weighted_aux_loss = weighted_aux_loss
         self.moe_method = moe_method
+        self.pretrain = pretrain
         self.vocab_size = vocab_size
         self.model_dim = model_dim
         self.augment_prob = {} if augment_prob is None else augment_prob
@@ -59,19 +61,20 @@ class MMCTO(nn.Module):
             self.aux_loss_fc = nn.ModuleDict(
                 {part: nn.Linear(model_dim, num_labels) for part in aux_loss_parts}
             )
-        if moe_method == "weighted":
-            self.gate_fc = nn.Linear(
-                len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
-            )
-            self.final_fc = nn.Linear(model_dim, num_labels)
-        elif moe_method == "mean":
-            self.gate_fc = None
-            self.final_fc = nn.Linear(model_dim, num_labels)
-        elif moe_method == "concat":
-            self.gate_fc = None
-            self.final_fc = nn.Linear(
-                model_dim * len(self.final_input_parts), num_labels
-            )
+        if not self.pretrain:
+            if moe_method == "weighted":
+                self.gate_fc = nn.Linear(
+                    len(self.gate_input_parts) * model_dim, len(self.final_input_parts)
+                )
+            else:
+                self.gate_fc = None
+
+            if moe_method == "concat":
+                self.final_fc = nn.Linear(
+                    model_dim * len(self.final_input_parts), num_labels
+                )
+            else:
+                self.final_fc = nn.Linear(model_dim, num_labels)
 
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
@@ -209,51 +212,55 @@ class MMCTO(nn.Module):
             else:
                 del losses[key]
 
-        aux_losses = {
-            part: self.aux_loss(
-                self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
-            )
-            for part, fc in self.aux_loss_fc.items()
-        }
-        if self.weighted_aux_loss:
-            if self.moe_method != "weighted":
-                aux_losses = {
-                    k: aux_losses[k].mean() / len(self.aux_loss_fc)
-                    for k in self.aux_loss_fc
-                }
-        else:
-            aux_losses = {k: aux_losses[k].mean() for k in self.aux_loss_fc}
-
-        if self.moe_method == "weighted":
-            gate_data = self.gate_fc(
-                torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
-            )
-            gate_data = torch.softmax(gate_data, dim=-1)
-            if self.weighted_aux_loss:
-                aux_losses = {
-                    k: (aux_losses[k] * gate_data[..., idx]).mean()
-                    for idx, k in enumerate(self.final_input_parts)
-                    if k in aux_losses
-                }
-            gate_data = (
-                gate_data[:, None]
-                * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
-            ).sum(-1)
-        elif self.moe_method == "mean":
-            gate_data = torch.stack(
-                [datas[p] for p in self.final_input_parts], dim=-1
-            ).mean(dim=-1)
-        elif self.moe_method == "concat":
-            gate_data = torch.cat([datas[p] for p in self.final_input_parts], dim=-1)
-
         losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
-        losses.update({f"{k}_aux_loss": v for k, v in aux_losses.items()})
 
-        pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
+        if not self.pretrain:
+            aux_losses = {
+                part: self.aux_loss(
+                    self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
+                )
+                for part, fc in self.aux_loss_fc.items()
+            }
+            if self.weighted_aux_loss:
+                if self.moe_method != "weighted":
+                    aux_losses = {
+                        k: aux_losses[k].mean() / len(self.aux_loss_fc)
+                        for k in self.aux_loss_fc
+                    }
+            else:
+                aux_losses = {k: aux_losses[k].mean() for k in self.aux_loss_fc}
 
-        losses["classification_loss"] = self.loss(pred, data["label"].float())
+            if self.moe_method == "weighted":
+                gate_data = self.gate_fc(
+                    torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
+                )
+                gate_data = torch.softmax(gate_data, dim=-1)
+                if self.weighted_aux_loss:
+                    aux_losses = {
+                        k: (aux_losses[k] * gate_data[..., idx]).mean()
+                        for idx, k in enumerate(self.final_input_parts)
+                        if k in aux_losses
+                    }
+                gate_data = (
+                    gate_data[:, None]
+                    * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
+                ).sum(-1)
+            elif self.moe_method == "mean":
+                gate_data = torch.stack(
+                    [datas[p] for p in self.final_input_parts], dim=-1
+                ).mean(dim=-1)
+            elif self.moe_method == "concat":
+                gate_data = torch.cat(
+                    [datas[p] for p in self.final_input_parts], dim=-1
+                )
 
-        return {
-            "loss_dict": losses,
-            "metric_dict": {"preds": pred, "target": data["label"]},
-        }
+            losses.update({f"{k}_aux_loss": v for k, v in aux_losses.items()})
+
+            pred = self.sigmod(self.final_fc(gate_data)).squeeze(-1)
+
+            losses["classification_loss"] = self.loss(pred, data["label"].float())
+            metrics = {"preds": pred, "target": data["label"]}
+        else:
+            metrics = {}
+
+        return {"loss_dict": losses, "metric_dict": metrics}
