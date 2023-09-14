@@ -263,6 +263,32 @@ def main():
         "ct_gov": {
             "func": convert_ct_gov,
             "data_path": "data/clinical_trials_gov",
+            "output_path": "text_description",
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            + "diseases: list of disease names.\n"
+            + "icdcodes: list of icd-10 codes of diseases.\n"
+            + "drugs: list of drug names.\n"
+            + "smiless: list of SMILES of the drugs.\n"
+            + "criteria: eligibility criteria.",
+            "chat_kwargs": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "user",
+                        "content": "Here is the schema definition of the table:\n"
+                        + "$schema_definition\n"
+                        + "This is a sample from the table:\n"
+                        + "$linearization\n"
+                        + "Please describe the sample using natural language.",
+                    },
+                ],
+            },
+        },
+        "ct_gov_summary": {
+            "func": convert_ct_gov,
+            "data_path": "data/clinical_trials_gov",
             "output_path": "brief_summary",
             "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
             + "diseases: list of disease names.\n"
