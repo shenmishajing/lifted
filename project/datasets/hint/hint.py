@@ -125,29 +125,35 @@ class HINTDataset(BaseDataset):
         for i, row in data.iterrows():
             cur_data = {}
 
-            if "label" in row:
-                cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
+            try:
+                if "label" in row:
+                    cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
-            for name in ["smiless", "drugs", "disease"]:
-                if name in row:
-                    cur_data[name] = tokenize(eval(row[name]), self.max_lengths[name])
+                for name in ["smiless", "drugs", "disease"]:
+                    if name in row:
+                        cur_data[name] = tokenize(
+                            eval(row[name]), self.max_lengths[name]
+                        )
 
-            for name, name_data in zip(
-                ["table", "summarization"], [table_data, summarization_data]
-            ):
-                if name_data:
-                    cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
+                for name, name_data in zip(
+                    ["table", "summarization"], [table_data, summarization_data]
+                ):
+                    if name_data:
+                        cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
 
-            if drug_description:
-                cur_data["description"] = tokenize(
-                    [
-                        drug_description[drug_name]
-                        if drug_name in drug_description and drug_description[drug_name]
-                        else "This is a drug."
-                        for drug_name in eval(row["drugs"])
-                    ],
-                    self.max_lengths["description"],
-                )
+                if drug_description:
+                    cur_data["description"] = tokenize(
+                        [
+                            drug_description[drug_name]
+                            if drug_name in drug_description
+                            and drug_description[drug_name]
+                            else "This is a drug."
+                            for drug_name in eval(row["drugs"])
+                        ],
+                        self.max_lengths["description"],
+                    )
+            except Exception as e:
+                continue
 
             data_list.append(cur_data)
 
