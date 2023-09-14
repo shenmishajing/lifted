@@ -124,13 +124,18 @@ class HINTDataset(BaseDataset):
 
         data_list = []
         for i, row in data.iterrows():
+            flag = True
+
             cur_data = {}
 
             if "label" in row:
                 cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
             for name in ["smiless", "drugs", "diseases"]:
-                if name in row and eval(row[name]):
+                if name in row:
+                    if not eval(row[name]):
+                        flag = False
+                        continue
                     cur_data[name] = tokenize(eval(row[name]), self.max_lengths[name])
 
             for name, name_data in zip(
@@ -150,7 +155,8 @@ class HINTDataset(BaseDataset):
                     self.max_lengths["description"],
                 )
 
-            data_list.append(cur_data)
+            if flag:
+                data_list.append(cur_data)
 
         return data_list
 
