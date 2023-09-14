@@ -12,6 +12,7 @@ data:
                         data_path: ""
                         table_path: text_description/processed
                         drug_description_path: ../clinical-trial-outcome-prediction/data/drugbank/drug_description.json
+                        summarization_path: brief_summary/processed
         dataloader_cfg:
             batch_size: 32
             # num_workers: 8
