@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_summarization-no-table_ct-gov_1x.yaml
+    - ../../schedules/schedule_3x.yaml
