@@ -28,7 +28,7 @@ class MMCTO(nn.Module):
         if final_input_parts is None:
             final_input_parts = ["table", "summarization", "smiless", "description"]
         if gate_input_parts is None:
-            gate_input_parts = ["drugs", "disease"]
+            gate_input_parts = ["drugs", "diseases"]
         if aux_loss_parts is None:
             aux_loss_parts = []
         else:
@@ -167,7 +167,7 @@ class MMCTO(nn.Module):
                 )[:, 0, ...]
                 losses[key] = self.consistency_loss(feature, aug_feature)
 
-        for key in ["smiless", "description", "drugs", "disease"]:
+        for key in ["smiless", "description", "drugs", "diseases"]:
             if key not in self.input_parts:
                 continue
             embedding_index += 1

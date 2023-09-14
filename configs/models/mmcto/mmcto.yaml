@@ -63,7 +63,7 @@ model:
                                             activation: relu
                                             batch_first: true
                                     num_layers: 2
-                            disease:
+                            diseases:
                                 class_path: torch.nn.TransformerEncoder
                                 init_args:
                                     encoder_layer:
@@ -75,13 +75,13 @@ model:
                                             batch_first: true
                                     num_layers: 2
                 final_input_parts: [table, smiless, description]
-                gate_input_parts: [drugs, disease]
+                gate_input_parts: [drugs, diseases]
                 # augment_prob:
                 #     table: 0.5
                 #     summarization: 0.5
                 #     smiless: 0.5
                 #     description: 0.5
                 #     drugs: 0.5
-                #     disease: 0.5
+                #     diseases: 0.5
                 vocab_size: 28996
                 model_dim: 128

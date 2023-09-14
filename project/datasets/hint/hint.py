@@ -36,7 +36,7 @@ class HINTDataset(BaseDataset):
                 summarization=1024,
                 smiless=1024,
                 drugs=64,
-                disease=64,
+                diseases=64,
                 description=1024,
             )
         self.max_lengths = max_lengths
@@ -55,12 +55,12 @@ class HINTDataset(BaseDataset):
                     res[name] = torch.stack([b[name] for b in batch], dim=0)
 
             for name in ["table", "summarization"]:
-                res[name] = {}
                 if name in batch[0]:
+                    res[name] = {}
                     for k in batch[0][name]:
                         res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
 
-            for name in ["smiless", "drugs", "disease", "description"]:
+            for name in ["smiless", "drugs", "diseases", "description"]:
                 if name in batch[0]:
                     res[name] = [b[name] for b in batch]
             return res
@@ -126,35 +126,29 @@ class HINTDataset(BaseDataset):
         for i, row in data.iterrows():
             cur_data = {}
 
-            try:
-                if "label" in row:
-                    cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
+            if "label" in row:
+                cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
-                for name in ["smiless", "drugs", "diseases"]:
-                    if name in row:
-                        cur_data[name] = tokenize(
-                            eval(row[name]), self.max_lengths[name]
-                        )
+            for name in ["smiless", "drugs", "diseases"]:
+                if name in row and eval(row[name]):
+                    cur_data[name] = tokenize(eval(row[name]), self.max_lengths[name])
 
-                for name, name_data in zip(
-                    ["table", "summarization"], [table_data, summarization_data]
-                ):
-                    if name_data:
-                        cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
+            for name, name_data in zip(
+                ["table", "summarization"], [table_data, summarization_data]
+            ):
+                if name_data:
+                    cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
 
-                if drug_description:
-                    cur_data["description"] = tokenize(
-                        [
-                            drug_description[drug_name]
-                            if drug_name in drug_description
-                            and drug_description[drug_name]
-                            else "This is a drug."
-                            for drug_name in eval(row["drugs"])
-                        ],
-                        self.max_lengths["description"],
-                    )
-            except Exception as e:
-                continue
+            if drug_description:
+                cur_data["description"] = tokenize(
+                    [
+                        drug_description[drug_name]
+                        if drug_name in drug_description and drug_description[drug_name]
+                        else "This is a drug."
+                        for drug_name in eval(row["drugs"])
+                    ],
+                    self.max_lengths["description"],
+                )
 
             data_list.append(cur_data)
 
