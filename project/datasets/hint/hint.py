@@ -130,7 +130,7 @@ class HINTDataset(BaseDataset):
                 if "label" in row:
                     cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
-                for name in ["smiless", "drugs", "disease"]:
+                for name in ["smiless", "drugs", "diseases"]:
                     if name in row:
                         cur_data[name] = tokenize(
                             eval(row[name]), self.max_lengths[name]
