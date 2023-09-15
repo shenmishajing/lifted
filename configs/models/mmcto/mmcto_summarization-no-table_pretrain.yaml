@@ -5,3 +5,4 @@ model:
         model:
             init_args:
                 pretrain: true
+                contrastive_loss: true

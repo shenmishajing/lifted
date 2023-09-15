@@ -1,5 +1,4 @@
 import math
-import random
 
 import torch
 from torch import nn
@@ -21,6 +20,7 @@ class MMCTO(nn.Module):
         num_labels: int = 1,
         augment_prob=None,
         augment_eps=0.1,
+        contrastive_loss=False,
     ):
         super().__init__()
         self.encoders = encoders
@@ -44,6 +44,7 @@ class MMCTO(nn.Module):
         self.model_dim = model_dim
         self.augment_prob = {} if augment_prob is None else augment_prob
         self.augment_eps = augment_eps
+        self.contrastive_loss = contrastive_loss
 
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
@@ -141,6 +142,18 @@ class MMCTO(nn.Module):
             datas[key] = feature
 
             if key in self.augment_prob:
+                aug_embedding, aug_attetion_mask = self.add_embedding(
+                    **data["augment"][key], embedding_index=embedding_index
+                )
+                aug_feature = self.encoders[key](
+                    aug_embedding, src_key_padding_mask=aug_attetion_mask
+                )[:, 0, ...]
+
+                if self.contrastive_loss:
+                    losses[f"{key}_contrastive_loss"] = -self.consistency_loss(
+                        feature, aug_feature
+                    )
+
                 mask = (
                     torch.rand(
                         embedding.shape[0],
@@ -148,9 +161,6 @@ class MMCTO(nn.Module):
                         dtype=embedding.dtype,
                     )
                     < self.augment_prob[key]
-                )
-                cur_embedding, _ = self.add_embedding(
-                    **data["augment"][key], embedding_index=embedding_index
                 )
                 lamb = (
                     torch.rand(
@@ -161,11 +171,20 @@ class MMCTO(nn.Module):
                     * self.augment_eps
                 )
                 lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
-                aug_embedding = lamb * cur_embedding + (1 - lamb) * embedding
-                aug_feature = self.encoders[key](
-                    aug_embedding, src_key_padding_mask=attetion_mask
-                )[:, 0, ...]
-                losses[key] = self.consistency_loss(feature, aug_feature)
+                losses[f"{key}_consistency_loss"] = self.consistency_loss(
+                    feature,
+                    self.encoders[key](
+                        (1 - lamb) * embedding + lamb * aug_embedding,
+                        src_key_padding_mask=attetion_mask,
+                    )[:, 0, ...],
+                )
+                losses[f"{key}_inverse_consistency_loss"] = self.consistency_loss(
+                    aug_feature,
+                    self.encoders[key](
+                        (1 - lamb) * aug_embedding + lamb * embedding,
+                        src_key_padding_mask=aug_attetion_mask,
+                    )[:, 0, ...],
+                )
 
         for key in ["smiless", "description", "drugs", "diseases"]:
             if key not in self.input_parts:
@@ -173,7 +192,9 @@ class MMCTO(nn.Module):
             embedding_index += 1
 
             datas[key] = []
-            losses[key] = []
+            losses[f"{key}_contrastive_loss"] = []
+            losses[f"{key}_consistency_loss"] = []
+            losses[f"{key}_inverse_consistency_loss"] = []
             for batch_idx, cur_data in enumerate(data[key]):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
@@ -184,35 +205,71 @@ class MMCTO(nn.Module):
                 datas[key].append(feature)
 
                 if key in self.augment_prob:
-                    aug_embedding = embedding.clone()
-                    for idx in range(embedding.shape[0]):
-                        if torch.rand(1) < self.augment_prob[key]:
-                            cur_embedding, _ = self.add_embedding(
-                                **data["augment"][key][batch_idx],
-                                embedding_index=embedding_index,
-                            )
-                            aug_idx = random.choice(range(cur_embedding.shape[0]))
-                            lamb = (
-                                torch.rand(
-                                    1, device=embedding.device, dtype=embedding.dtype
-                                )
-                                * self.augment_eps
-                            )
-                            aug_embedding[idx] = (
-                                lamb * cur_embedding[aug_idx]
-                                + (1 - lamb) * embedding[idx]
-                            )
+                    aug_embedding, aug_attetion_mask = self.add_embedding(
+                        **data["augment"][key][batch_idx],
+                        embedding_index=embedding_index,
+                    )
+                    aug_idx = torch.randint(
+                        0, aug_embedding.shape[0], (embedding.shape[0],)
+                    )
+                    aug_embedding = aug_embedding[aug_idx]
+                    aug_attetion_mask = aug_attetion_mask[aug_idx]
                     aug_feature = self.encoders[key](
-                        aug_embedding, src_key_padding_mask=attetion_mask
+                        aug_embedding, src_key_padding_mask=aug_attetion_mask
                     )[:, 0, ...].mean(dim=0)
-                    losses[key].append(self.consistency_loss(feature, aug_feature))
-            datas[key] = torch.stack(datas[key])
-            if losses[key]:
-                losses[key] = torch.stack(losses[key]).mean()
-            else:
-                del losses[key]
 
-        losses = {f"{k}_consistency_loss": v for k, v in losses.items()}
+                    if self.contrastive_loss:
+                        losses[f"{key}_contrastive_loss"].append(
+                            -self.consistency_loss(feature, aug_feature)
+                        )
+
+                    mask = (
+                        torch.rand(
+                            embedding.shape[0],
+                            device=embedding.device,
+                            dtype=embedding.dtype,
+                        )
+                        < self.augment_prob[key]
+                    )
+                    lamb = (
+                        torch.rand(
+                            embedding.shape[0],
+                            device=embedding.device,
+                            dtype=embedding.dtype,
+                        )
+                        * self.augment_eps
+                    )
+                    lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
+
+                    losses[f"{key}_consistency_loss"].append(
+                        self.consistency_loss(
+                            feature,
+                            self.encoders[key](
+                                (1 - lamb) * embedding + lamb * aug_embedding,
+                                src_key_padding_mask=attetion_mask,
+                            )[:, 0, ...].mean(dim=0),
+                        )
+                    )
+                    losses[f"{key}_inverse_consistency_loss"].append(
+                        self.consistency_loss(
+                            aug_feature,
+                            self.encoders[key](
+                                (1 - lamb) * aug_embedding + lamb * embedding,
+                                src_key_padding_mask=aug_attetion_mask,
+                            )[:, 0, ...].mean(dim=0),
+                        )
+                    )
+            datas[key] = torch.stack(datas[key])
+
+            for k in [
+                "contrastive_loss",
+                "consistency_loss",
+                "inverse_consistency_loss",
+            ]:
+                if losses[f"{key}_{k}"]:
+                    losses[f"{key}_{k}"] = torch.stack(losses[f"{key}_{k}"]).mean()
+                else:
+                    del losses[f"{key}_{k}"]
 
         if not self.pretrain:
             aux_losses = {
