@@ -1,6 +1,7 @@
 import math
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
@@ -80,7 +81,6 @@ class MMCTO(nn.Module):
         self.sigmod = nn.Sigmoid()
         self.loss = nn.BCELoss()
         self.aux_loss = nn.BCELoss(reduction="none")
-        self.consistency_loss = nn.L1Loss()
 
         self.reset_parameters()
 
@@ -122,6 +122,12 @@ class MMCTO(nn.Module):
         else:
             return embedding
 
+    @staticmethod
+    def similarity(x, y):
+        return (
+            1 + (F.normalize(x.flatten(1)) * F.normalize(y.flatten(1))).sum(dim=-1)
+        ) / 2
+
     def forward(self, data):
         datas = {}
         losses = {}
@@ -150,7 +156,7 @@ class MMCTO(nn.Module):
                 )[:, 0, ...]
 
                 if self.contrastive_loss:
-                    losses[f"{key}_contrastive_loss"] = -self.consistency_loss(
+                    losses[f"{key}_contrastive_loss"] = 1 - self.similarity(
                         feature, aug_feature
                     )
 
@@ -171,14 +177,14 @@ class MMCTO(nn.Module):
                     * self.augment_eps
                 )
                 lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
-                losses[f"{key}_consistency_loss"] = self.consistency_loss(
+                losses[f"{key}_consistency_loss"] = self.similarity(
                     feature,
                     self.encoders[key](
                         (1 - lamb) * embedding + lamb * aug_embedding,
                         src_key_padding_mask=attetion_mask,
                     )[:, 0, ...],
                 )
-                losses[f"{key}_inverse_consistency_loss"] = self.consistency_loss(
+                losses[f"{key}_inverse_consistency_loss"] = self.similarity(
                     aug_feature,
                     self.encoders[key](
                         (1 - lamb) * aug_embedding + lamb * embedding,
@@ -220,7 +226,7 @@ class MMCTO(nn.Module):
 
                     if self.contrastive_loss:
                         losses[f"{key}_contrastive_loss"].append(
-                            -self.consistency_loss(feature, aug_feature)
+                            1 - self.similarity(feature, aug_feature)
                         )
 
                     mask = (
@@ -242,7 +248,7 @@ class MMCTO(nn.Module):
                     lamb = lamb.where(mask, torch.zeros_like(lamb))[:, None, None]
 
                     losses[f"{key}_consistency_loss"].append(
-                        self.consistency_loss(
+                        self.similarity(
                             feature,
                             self.encoders[key](
                                 (1 - lamb) * embedding + lamb * aug_embedding,
@@ -251,7 +257,7 @@ class MMCTO(nn.Module):
                         )
                     )
                     losses[f"{key}_inverse_consistency_loss"].append(
-                        self.consistency_loss(
+                        self.similarity(
                             aug_feature,
                             self.encoders[key](
                                 (1 - lamb) * aug_embedding + lamb * embedding,
