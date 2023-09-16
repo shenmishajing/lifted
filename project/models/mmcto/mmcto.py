@@ -226,7 +226,7 @@ class MMCTO(nn.Module):
 
                     if self.contrastive_loss:
                         losses[f"{key}_contrastive_loss"].append(
-                            1 - self.similarity(feature, aug_feature)
+                            1 - self.similarity(feature[None], aug_feature[None])
                         )
 
                     mask = (
@@ -249,20 +249,20 @@ class MMCTO(nn.Module):
 
                     losses[f"{key}_consistency_loss"].append(
                         self.similarity(
-                            feature,
+                            feature[None],
                             self.encoders[key](
                                 (1 - lamb) * embedding + lamb * aug_embedding,
                                 src_key_padding_mask=attetion_mask,
-                            )[:, 0, ...].mean(dim=0),
+                            )[:, 0, ...].mean(dim=0)[None],
                         )
                     )
                     losses[f"{key}_inverse_consistency_loss"].append(
                         self.similarity(
-                            aug_feature,
+                            aug_feature[None],
                             self.encoders[key](
                                 (1 - lamb) * aug_embedding + lamb * embedding,
                                 src_key_padding_mask=aug_attetion_mask,
-                            )[:, 0, ...].mean(dim=0),
+                            )[:, 0, ...].mean(dim=0)[None],
                         )
                     )
             datas[key] = torch.stack(datas[key])
