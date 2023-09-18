@@ -125,7 +125,8 @@ class MMCTO(nn.Module):
     @staticmethod
     def similarity(x, y):
         return (
-            1 + (F.normalize(x.flatten(1)) * F.normalize(y.flatten(1))).sum(dim=-1)
+            1
+            + (F.normalize(x.flatten(1)) * F.normalize(y.flatten(1))).sum(dim=-1).mean()
         ) / 2
 
     def forward(self, data):
