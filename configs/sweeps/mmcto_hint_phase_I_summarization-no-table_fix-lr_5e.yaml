@@ -1,0 +1,31 @@
+name: mmcto_hint_phase_I_summarization-no-table_fix-lr_5e_ROC-AUC
+method: random
+program: cli
+parameters:
+    model/init_args/model/init_args/aux_loss_share_fc:
+        values: [true, false]
+    model/init_args/model/init_args/weighted_aux_loss:
+        values: [true, false]
+    model/init_args/model/init_args/aux_loss_parts:
+        values: [[summarization, smiless, description], []]
+    model/init_args/model/init_args/augment_prob:
+        values:
+            - {}
+            - table: 0.5
+              summarization: 0.5
+              smiless: 0.5
+              description: 0.5
+              drugs: 0.5
+              diseases: 0.5
+    model/init_args/ckpt_path:
+        values:
+            - work_dirs/mmcto_summarization-no-table_ct-gov_1x/2023-09-15_21-58-49.547099/checkpoints/last.ckpt
+            - ""
+command:
+    - ${env}
+    - "cli"
+    - "fit"
+    - "--config"
+    - "configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_5e.yaml"
+    - "--json-file"
+    - ${args_json_file}
