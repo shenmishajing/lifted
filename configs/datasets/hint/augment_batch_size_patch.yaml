@@ -1,7 +1,7 @@
 data:
     init_args:
         dataloader_cfg:
-            batch_size: 8
+            batch_size: 2
 
 trainer:
-    accumulate_grad_batches: 4
+    accumulate_grad_batches: 16
