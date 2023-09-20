@@ -1,0 +1,27 @@
+name: mmcto_hint_phase_III_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e_ROC-AUC
+method: bayes
+metric:
+    goal: maximize
+    name: val/ROC-AUC_1
+program: cli
+parameters:
+    model/init_args/model/init_args/aux_loss_share_fc:
+        values: [true, false]
+    model/init_args/model/init_args/weighted_aux_loss:
+        values: [true, false]
+    optimizer_config/optimizer/init_args/lr:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+    optimizer_config/optimizer/init_args/weight_decay:
+        distribution: log_uniform_values
+        max: 1
+        min: 1e-05
+command:
+    - ${env}
+    - "cli"
+    - "fit"
+    - "--config"
+    - "configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e.yaml"
+    - "--json-file"
+    - ${args_json_file}
