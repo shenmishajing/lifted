@@ -23,6 +23,7 @@ class MMCTO(nn.Module):
         augment_eps=0.1,
         contrastive_loss=False,
         inverse_consistency_loss=False,
+        use_cosin_simiarity_loss=False,
     ):
         super().__init__()
         self.encoders = encoders
@@ -48,6 +49,7 @@ class MMCTO(nn.Module):
         self.augment_eps = augment_eps
         self.contrastive_loss = contrastive_loss
         self.inverse_consistency_loss = inverse_consistency_loss
+        self.use_cosin_simiarity_loss = use_cosin_simiarity_loss
 
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
@@ -124,13 +126,16 @@ class MMCTO(nn.Module):
         else:
             return embedding
 
-    @staticmethod
-    def similarity(x, y):
-        return F.l1_loss(x, y)
-        # return (
-        #     1
-        #     + (F.normalize(x.flatten(1)) * F.normalize(y.flatten(1))).sum(dim=-1).mean()
-        # ) / 2
+    def similarity(self, x, y):
+        if self.use_cosin_simiarity_loss:
+            return (
+                1
+                + (F.normalize(x.flatten(1)) * F.normalize(y.flatten(1)))
+                .sum(dim=-1)
+                .mean()
+            ) / 2
+        else:
+            return F.l1_loss(x, y)
 
     def forward(self, data):
         datas = {}
