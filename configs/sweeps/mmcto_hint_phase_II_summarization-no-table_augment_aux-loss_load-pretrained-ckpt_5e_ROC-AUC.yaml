@@ -5,6 +5,11 @@ metric:
     name: val/ROC-AUC_1
 program: cli
 parameters:
+    model/init_args/ckpt_path:
+        values:
+            - work_dirs/mmcto_summarization-no-table_ct-gov_1x/2023-09-15_21-58-49.547099/checkpoints/last.ckpt
+            - work_dirs/mmcto_summarization-no-table_ct-gov_1x/2023-09-17_17-30-09.433351/checkpoints/last.ckpt
+            - work_dirs/mmcto_summarization-no-table_ct-gov_3x/2023-09-17_23-31-25.869983/checkpoints/last.ckpt
     optimizer_config/optimizer/init_args/lr:
         distribution: log_uniform_values
         max: 1
@@ -18,6 +23,6 @@ command:
     - "cli"
     - "fit"
     - "--config"
-    - "configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e.yaml"
+    - "configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_augment_aux-loss_5e.yaml"
     - "--json-file"
     - ${args_json_file}
