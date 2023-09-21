@@ -1,7 +1,3 @@
-__base__: mmcto_summarization-no-table_augment.yaml
-
-model:
-    init_args:
-        model:
-            init_args:
-                aux_loss_parts: [summarization, smiless, description]
+__base__:
+    - mmcto_summarization-no-table_augment.yaml
+    - mmcto_summarization-no-table_aux-loss.yaml
