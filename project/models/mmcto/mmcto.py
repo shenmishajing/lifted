@@ -302,7 +302,7 @@ class MMCTO(nn.Module):
                 "inverse_consistency_loss",
             ]:
                 if losses[f"{key}_{k}"]:
-                    losses[f"{key}_{k}"] = torch.cat(losses[f"{key}_{k}"]).mean()
+                    losses[f"{key}_{k}"] = torch.stack(losses[f"{key}_{k}"]).mean()
                 else:
                     del losses[f"{key}_{k}"]
 
