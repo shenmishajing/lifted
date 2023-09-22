@@ -2,7 +2,7 @@
 
 ### Adjust batch size
 
-In `configs/datasets/hint/augment_batch_size_patch.yaml`, set data.dataloader_cfg.batch_size to 32, set trainer.accumulate_grad_batches to 1
+In `configs/datasets/hint/augment_batch_size_patch.yaml`, set data.dataloader_cfg.batch_size to 32 and set trainer.accumulate_grad_batches to 1
 
 Run
 
