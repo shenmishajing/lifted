@@ -16,3 +16,23 @@ Generally, you can just use the latest pacages in `requirements.txt` without spe
 pip install -r requirements.txt
 pip install -e .
 ```
+
+### Install by conda
+
+If you want to use conda, you can use the following command to create a new environment and install all required packages.
+
+```bash
+conda env create --file requirements/conda/conda.yaml
+```
+
+or
+
+```bash
+conda create --name <env_name> --file requirements/conda/conda.txt
+```
+
+then, install this project by
+
+```bash
+pip install -e .
+```
