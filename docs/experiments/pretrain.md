@@ -32,7 +32,7 @@ In `configs/datasets/hint/augment_batch_size_patch.yaml`, set data.dataloader_cf
 
 #### Run
 
-Run experiments for phase I, II and III on different cards parallelly:
+Run experiments for phase I, II and III on different gpus parallelly:
 
 ```bash
 CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e.yaml
@@ -40,7 +40,7 @@ CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_pha
 CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e.yaml
 ```
 
-Or run experiments for phase I, II and III on the same card sequentially:
+Or run experiments for phase I, II and III on the same gpu sequentially:
 
 ```bash
 shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_${phase}_summarization-no-table_augment_aux-loss_load-pretrained-ckpt_5e.yaml' --arg_dict.phase 'I,II,III'

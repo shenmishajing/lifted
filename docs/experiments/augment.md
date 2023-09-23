@@ -14,16 +14,16 @@ to check if there is an OOM error.
 
 ### Run
 
-Run experiments for phase I, II and III on different cards parallelly:
+Run experiments for phase I, II and III on different gpus parallelly:
 
 ```bash
-shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss,_aux-loss-share-fc,_aux-loss-weighted,_aux-loss-weighted-share-fc'
-shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss,_aux-loss-share-fc,_aux-loss-weighted,_aux-loss-weighted-share-fc'
-shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss,_aux-loss-share-fc,_aux-loss-weighted,_aux-loss-weighted-share-fc'
+shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_I_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss'
+shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_II_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss'
+shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_III_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss'
 ```
 
-Or run experiments for phase I, II and III on the same card sequentially:
+Or run experiments for phase I, II and III on the same gpu sequentially:
 
 ```bash
-shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_${phase}_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss,_aux-loss-share-fc,_aux-loss-weighted,_aux-loss-weighted-share-fc' --arg_dict.phase 'I,II,III'
+shell_command_launcher 'CUDA_VISIBLE_DEVICES=<gpu_id> cli fit --config configs/runs/mmcto/mmcto_hint_phase_${phase}_summarization-no-table_augment${run}_5e.yaml' --num 10 --arg_dict.run ',_aux-loss' --arg_dict.phase 'I,II,III'
 ```
