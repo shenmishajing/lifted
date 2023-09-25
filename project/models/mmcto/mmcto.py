@@ -19,7 +19,7 @@ class MMCTO(nn.Module):
         vocab_size: int = 28996,
         model_dim: int = 768,
         num_labels: int = 1,
-        augment_prob=None,
+        augment_prob=0.0,
         augment_eps=0.1,
         contrastive_loss=False,
         inverse_consistency_loss=False,
@@ -45,7 +45,7 @@ class MMCTO(nn.Module):
         self.pretrain = pretrain
         self.vocab_size = vocab_size
         self.model_dim = model_dim
-        self.augment_prob = {} if augment_prob is None else augment_prob
+        self.augment_prob = augment_prob
         self.augment_eps = augment_eps
         self.contrastive_loss = contrastive_loss
         self.inverse_consistency_loss = inverse_consistency_loss
@@ -137,10 +137,10 @@ class MMCTO(nn.Module):
         else:
             return F.l1_loss(x, y)
 
-    def generate_random_lambda(self, embedding, key):
+    def generate_random_lambda(self, embedding):
         lamb = (
             torch.rand(
-                embedding.shape[0],
+                embedding.shape,
                 device=embedding.device,
                 dtype=embedding.dtype,
             )
@@ -148,13 +148,13 @@ class MMCTO(nn.Module):
         )
         lamb = lamb.where(
             torch.rand(
-                embedding.shape[0],
+                embedding.shape,
                 device=embedding.device,
                 dtype=embedding.dtype,
             )
-            < self.augment_prob[key],
+            < self.augment_prob,
             torch.zeros_like(lamb),
-        )[:, None, None]
+        )
         return lamb
 
     def encode(self, embedding, attetion_mask, key):
@@ -179,8 +179,8 @@ class MMCTO(nn.Module):
             feature = self.encode(embedding, attetion_mask, key)
             datas[key] = feature
 
-            if key in self.augment_prob:
-                lamb = self.generate_random_lambda(embedding, key)
+            if self.augment_prob > 0:
+                lamb = self.generate_random_lambda(embedding)
 
                 aug_embedding, aug_attetion_mask = self.add_embedding(
                     **data["augment"][key], embedding_index=embedding_index
@@ -240,8 +240,8 @@ class MMCTO(nn.Module):
                 feature = self.encode(embedding, attetion_mask, key).mean(dim=0)[None]
                 datas[key].append(feature)
 
-                if key in self.augment_prob:
-                    lamb = self.generate_random_lambda(embedding, key)
+                if self.augment_prob > 0:
+                    lamb = self.generate_random_lambda(embedding)
 
                     aug_embedding, aug_attetion_mask = self.add_embedding(
                         **data["augment"][key][batch_idx],
