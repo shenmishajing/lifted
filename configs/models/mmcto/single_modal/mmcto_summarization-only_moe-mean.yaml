@@ -6,3 +6,9 @@ model:
             init_args:
                 moe_method: mean
                 final_input_parts: [summarization]
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_single_modal
