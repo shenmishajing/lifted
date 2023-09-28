@@ -1,10 +1,9 @@
 ## Experiment
 
-### Pretrain Ablation study
-
-See [pretrain experiment docs](docs/experiments/pretrain.md) for details.
-
 ### Augment Ablation study
 
-See [augment experiment docs](docs/experiments/augment.md) for details.
+See [augment experiment docs](augment.md) for details.
 
+### Pretrain Ablation study
+
+See [pretrain experiment docs](pretrain.md) for details.
