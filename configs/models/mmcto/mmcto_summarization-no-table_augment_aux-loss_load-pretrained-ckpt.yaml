@@ -1,5 +1,0 @@
-__base__: mmcto_summarization-no-table_augment_aux-loss.yaml
-
-model:
-    init_args:
-        ckpt_path: work_dirs/mmcto_summarization-no-table_ct-gov_1x/2023-09-15_21-58-49.547099/checkpoints/last.ckpt

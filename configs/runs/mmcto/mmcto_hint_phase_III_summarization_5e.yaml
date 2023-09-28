@@ -1,5 +1,0 @@
-__base__:
-    - ../../default_runtime.yaml
-    - ../../schedules/schedule_5e.yaml
-    - ../../datasets/hint/hint_phase_III_cos_schedule.yaml
-    - ../../models/mmcto/mmcto_summarization.yaml

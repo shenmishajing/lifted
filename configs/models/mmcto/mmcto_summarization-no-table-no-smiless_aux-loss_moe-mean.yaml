@@ -1,3 +1,0 @@
-__base__:
-    - mmcto_summarization-no-table-no-smiless_aux-loss.yaml
-    - mmcto_summarization-no-table-no-smiless_moe-mean.yaml

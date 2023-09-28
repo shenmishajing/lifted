@@ -1,8 +1,0 @@
-__base__: mmcto_augment.yaml
-
-model:
-    init_args:
-        model:
-            init_args:
-                pretrain: true
-                contrastive_loss: true

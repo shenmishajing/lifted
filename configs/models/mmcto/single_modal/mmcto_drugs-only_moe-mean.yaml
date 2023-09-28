@@ -1,14 +1,7 @@
-__base__: ../mmcto.yaml
+__base__: mmcto_summarization-only_moe-mean.yaml
 
 model:
     init_args:
         model:
             init_args:
-                moe_method: mean
                 final_input_parts: [drugs]
-
-trainer:
-    logger:
-        init_args:
-            tags:
-                pre_item: mmcto_single_modal

@@ -1,3 +1,0 @@
-__base__:
-    - mmcto_hint_phase_III_1x.yaml
-    - ../../schedules/schedule_3x.yaml

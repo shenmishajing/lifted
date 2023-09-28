@@ -1,0 +1,7 @@
+__base__: ../base/mmcto_summarization-no-table.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_moe_method

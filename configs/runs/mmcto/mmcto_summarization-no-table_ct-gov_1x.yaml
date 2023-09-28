@@ -1,5 +1,0 @@
-__base__:
-    - ../../default_runtime.yaml
-    - ../../schedules/schedule_1x.yaml
-    - ../../datasets/ct-gov/ct-gov.yaml
-    - ../../models/mmcto/mmcto_summarization-no-table_pretrain.yaml

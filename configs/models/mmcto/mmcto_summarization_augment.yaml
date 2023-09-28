@@ -1,3 +1,0 @@
-__base__:
-    - mmcto_summarization.yaml
-    - augment_patch.yaml

@@ -1,7 +1,0 @@
-__base__: mmcto_summarization-no-table_augment_aux-loss.yaml
-
-model:
-    init_args:
-        model:
-            init_args:
-                weighted_aux_loss: true

@@ -1,4 +1,4 @@
-__base__: ../mmcto.yaml
+__base__: ../base/mmcto.yaml
 
 model:
     init_args:
