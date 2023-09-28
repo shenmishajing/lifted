@@ -1,4 +1,5 @@
 # load demo data
+import os
 import shutil
 from collections import defaultdict
 
@@ -106,6 +107,8 @@ def main():
 
     models = args.model.split(",")
     phases = args.phase.split(",")
+
+    os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
 
     for phase in phases:
         datas = {
