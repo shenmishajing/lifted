@@ -26,7 +26,7 @@ def get_random_seed():
 def parse_results(results):
     for split in results:
         result = {}
-        for metric in results[split][0]:
+        for metric in ["PR-AUC", "F1", "ROC-AUC"]:
             result[metric] = torch.stack([k[metric] for k in results[split]])
 
         for metric in result:
