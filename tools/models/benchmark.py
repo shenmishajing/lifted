@@ -57,6 +57,7 @@ def spot(datas, metrics, phase, use_hint_hyperparameters=True, n=30):
     datasets = {k: TrialOutcomeDataset(v) for k, v in datas.items()}
 
     for _ in trange(n):
+        seed_everything()
         if use_hint_hyperparameters:
             model = SPOT(
                 epochs=5,
