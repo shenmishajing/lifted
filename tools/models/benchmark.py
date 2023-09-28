@@ -1,8 +1,10 @@
 # load demo data
 import os
+import random
 import shutil
 from collections import defaultdict
 
+import numpy as np
 import torch
 from lightning import seed_everything
 from pytrial.data.demo_data import load_trial_outcome_data
@@ -15,6 +17,10 @@ from pytrial.tasks.trial_outcome.data import (
 )
 from torchmetrics import AUROC, AveragePrecision, F1Score, MetricCollection
 from tqdm import trange
+
+
+def get_random_seed():
+    return random.randint(np.iinfo(np.uint32).min, np.iinfo(np.uint32).max)
 
 
 def parse_results(results):
@@ -30,12 +36,21 @@ def parse_results(results):
     return results
 
 
-def hint(datas, metrics, n=30):
+def hint(datas, metrics, phase, n=30, output_path="results/details"):
     results = defaultdict(list)
     datasets = {k: TrialOutcomeDatasetBase(v) for k, v in datas.items()}
 
+    os.makedirs(output_path, exist_ok=True)
+    file = open(
+        f"results/details/{phase}_hint.txt",
+        "w",
+    )
+
     for _ in trange(n):
-        seed_everything()
+        seed = get_random_seed()
+        file.write(f"seed: {seed}\n")
+        seed_everything(seed)
+
         model = HINT(highway_num_layer=2, epoch=1, lr=1e-3)
         model.fit(datasets["train"], datasets["valid"])
 
@@ -47,18 +62,39 @@ def hint(datas, metrics, n=30):
             target = {k: v[0] for k, v in zip(target["index"], target["data"])}
             target = torch.tensor([target[k[0]] for k in preds])
             preds = torch.tensor([k[1] for k in preds])
-            results[split].append(metrics(preds, target))
+            result = metrics(preds, target)
+            results[split].append(result)
             metrics.reset()
+
+            file.write(f"{split}\t{result}\n")
+
+    file.close()
 
     return results
 
 
-def spot(datas, metrics, phase, use_hint_hyperparameters=True, n=30):
+def spot(
+    datas,
+    metrics,
+    phase,
+    n=30,
+    use_hint_hyperparameters=True,
+    output_path="results/details",
+):
     results = defaultdict(list)
     datasets = {k: TrialOutcomeDataset(v) for k, v in datas.items()}
 
+    os.makedirs(output_path, exist_ok=True)
+
     for _ in trange(n):
-        seed = seed_everything()
+        file = open(
+            f"results/details/{phase}_spot{'_hint' if use_hint_hyperparameters else ''}.txt",
+            "a",
+        )
+        seed = get_random_seed()
+        file.write(f"seed: {seed}\n")
+        seed_everything(seed)
+
         if use_hint_hyperparameters:
             model = SPOT(
                 epochs=5,
@@ -77,10 +113,15 @@ def spot(datas, metrics, phase, use_hint_hyperparameters=True, n=30):
             preds = model.predict(datasets[split])
             target = torch.tensor(preds["label"])
             preds = torch.tensor(preds["pred"][:, 0])
-            results[split].append(metrics(preds, target))
+            result = metrics(preds, target)
+            results[split].append(result)
             metrics.reset()
 
+            file.write(f"{split}\t{result}\n")
+
         shutil.rmtree(f"./checkpoints/spot/phase_{phase}")
+
+        file.close()
 
     return results
 
@@ -91,7 +132,7 @@ def argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="spot,spot_hint,hint")
     parser.add_argument("--phase", type=str, default="I,II,III")
-    parser.add_argument("--save-path", type=str, default="./results.txt")
+    parser.add_argument("--n", type=int, default=30)
     return parser.parse_args()
 
 
@@ -108,8 +149,7 @@ def main():
 
     models = args.model.split(",")
     phases = args.phase.split(",")
-
-    os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
+    save_path = "results/summarization"
 
     for phase in phases:
         datas = {
@@ -122,19 +162,19 @@ def main():
 
         for model in models:
             if model == "hint":
-                results = hint(datas, metrics)
+                results = hint(datas, metrics, phase, args.n)
             elif model == "spot":
-                results = spot(datas, metrics, phase, False)
+                results = spot(datas, metrics, phase, args.n, False)
             elif model == "spot_hint":
-                results = spot(datas, metrics, phase)
+                results = spot(datas, metrics, phase, n=args.n)
 
             results = parse_results(results)
 
-            res_string = f"{phase}&{model}"
+            res_string = ""
             for metric in ["PR-AUC", "F1", "ROC-AUC"]:
-                res_string += f'& $ {results["test"][metric][0]} \pm {results["test"][metric][1]} $'
+                res_string += f'& $ {results["test"][metric][0]:.3g} \pm {results["test"][metric][1]:.3g} $'
             res_string += "\\\\\n"
-            open(args.save_path, "a").write(res_string)
+            open(os.path.join(save_path, f"{phase}_{model}.txt"), "w").write(res_string)
 
 
 if __name__ == "__main__":
