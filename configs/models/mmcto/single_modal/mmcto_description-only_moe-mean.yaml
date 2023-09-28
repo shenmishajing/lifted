@@ -1,8 +1,8 @@
-__base__: mmcto.yaml
+__base__: ../mmcto.yaml
 
 model:
     init_args:
         model:
             init_args:
                 moe_method: mean
-                final_input_parts: [summarization]
+                final_input_parts: [description]
