@@ -150,6 +150,7 @@ def main():
     models = args.model.split(",")
     phases = args.phase.split(",")
     save_path = "results/summarization"
+    os.makedirs(save_path, exist_ok=True)
 
     for phase in phases:
         datas = {
