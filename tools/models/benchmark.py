@@ -58,16 +58,17 @@ def spot(datas, metrics, phase, use_hint_hyperparameters=True, n=30):
     datasets = {k: TrialOutcomeDataset(v) for k, v in datas.items()}
 
     for _ in trange(n):
-        seed_everything()
+        seed = seed_everything()
         if use_hint_hyperparameters:
             model = SPOT(
                 epochs=5,
                 learning_rate=1e-3,
                 weight_decay=0,
+                seed=seed,
                 output_dir=f"./checkpoints/spot/phase_{phase}",
             )
         else:
-            model = SPOT(output_dir=f"./checkpoints/spot/phase_{phase}")
+            model = SPOT(seed=seed, output_dir=f"./checkpoints/spot/phase_{phase}")
 
         model.fit(datasets["train"], datasets["valid"])
 
