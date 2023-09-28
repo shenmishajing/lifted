@@ -15,7 +15,7 @@ from pytrial.tasks.trial_outcome.data import (
     TrialOutcomeDataset,
     TrialOutcomeDatasetBase,
 )
-from torchmetrics import AUROC, AveragePrecision, F1Score, MetricCollection
+from torchmetrics import AUROC, AveragePrecision, F1Score, MetricCollection, StatScores
 from tqdm import trange
 
 
@@ -130,7 +130,7 @@ def argparse():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="spot,spot_hint,hint")
+    parser.add_argument("--model", type=str, default="spot_hint,spot,hint")
     parser.add_argument("--phase", type=str, default="I,II,III")
     parser.add_argument("--n", type=int, default=30)
     return parser.parse_args()
@@ -142,6 +142,7 @@ def main():
             "F1": F1Score("binary"),
             "ROC-AUC": AUROC("binary"),
             "PR-AUC": AveragePrecision("binary"),
+            "STAT": StatScores("binary"),
         }
     )
 
