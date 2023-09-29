@@ -2,6 +2,8 @@
 import os
 import pickle
 import random
+import shutil
+from collections import defaultdict
 
 import numpy as np
 import torch
@@ -48,6 +50,7 @@ def fit_modal(
     **kwargs,
 ):
     output_path = os.path.join(output_path, phase, model_name)
+    os.makedirs(output_path, exist_ok=True)
 
     for i in trange(rank, n, world_size):
         seed = get_random_seed()
@@ -82,17 +85,16 @@ def hint(datasets, metrics, datas, *args, **kwargs):
 
 
 def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
-    if model_name == "spot_hint":
-        model = SPOT(
-            epochs=5,
-            learning_rate=1e-3,
-            weight_decay=0,
-            seed=seed,
-            output_dir=os.path.join(output_path, "checkpoints"),
-        )
-    else:
-        model = SPOT(seed=seed, output_dir=os.path.join(output_path, "checkpoints"))
+    model_args = {"seed": seed, "output_dir": os.path.join(output_path, "checkpoints")}
 
+    if "hint" in model_name:
+        model_args["learning_rate"] = 1e-3
+        model_args["weight_decay"] = 0
+
+    if "5e" in model_name:
+        model_args["epochs"] = 5
+
+    model = SPOT(**model_args)
     model.fit(datasets["train"], datasets["valid"])
 
     result = {}
@@ -104,22 +106,25 @@ def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
         result[split] = metrics(preds, target)
         metrics.reset()
 
+    shutil.rmtree(os.path.join(output_path, "checkpoints"))
+
     return result
 
 
-model_map = {"hint": hint, "spot": spot, "spot_hint": spot}
+model_map = defaultdict(lambda: spot)
+model_map["hint"] = hint
 
 
 def argparse():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="spot_hint,spot,hint")
+    parser.add_argument("--model", type=str, default="spot_hint,spot_hint_5e,spot,hint")
     parser.add_argument("--phase", type=str, default="I,II,III")
     parser.add_argument("--output-path", type=str, default="results")
     parser.add_argument("--n", type=int, default=30)
-    parser.add_augment("--world-size", type=int, default=1)
-    parser.add_augment("--rank", type=int, default=0)
+    parser.add_argument("--world-size", type=int, default=1)
+    parser.add_argument("--rank", type=int, default=0)
     return parser.parse_args()
 
 
@@ -148,6 +153,7 @@ def main():
             if model == "summary":
                 data_path = os.path.join(args.output_path, "details", phase)
                 output_path = os.path.join(args.output_path, "summary")
+                os.makedirs(output_path, exist_ok=True)
 
                 res_string = ""
                 for model_name in os.listdir(data_path):
