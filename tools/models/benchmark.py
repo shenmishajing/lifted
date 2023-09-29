@@ -85,7 +85,7 @@ def hint(datasets, metrics, datas, *args, **kwargs):
 
 
 def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
-    model_args = {"seed": seed, "output_dir": os.path.join(output_path, "checkpoints")}
+    model_args = {"seed": seed, "output_dir": output_path}
 
     if "hint" in model_name:
         model_args["learning_rate"] = 1e-3
@@ -106,7 +106,7 @@ def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
         result[split] = metrics(preds, target)
         metrics.reset()
 
-    shutil.rmtree(os.path.join(output_path, "checkpoints"))
+    shutil.rmtree(output_path)
 
     return result
 
