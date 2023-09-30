@@ -1,4 +1,4 @@
-__base__: ../base/mmcto_summarization-no-table_augment-cos-loss.yaml
+__base__: ../base/mmcto_summarization-no-table_augment-cos-loss_aux-loss-share-fc.yaml
 
 trainer:
     logger:

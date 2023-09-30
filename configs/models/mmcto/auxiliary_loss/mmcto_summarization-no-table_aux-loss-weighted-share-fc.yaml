@@ -1,3 +1,7 @@
-__base__:
-    - mmcto_summarization-no-table_aux-loss-weighted.yaml
-    - mmcto_summarization-no-table_aux-loss-share-fc.yaml
+__base__: ../base/mmcto_summarization-no-table_aux-loss-weighted-share-fc.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_auxiliary_loss

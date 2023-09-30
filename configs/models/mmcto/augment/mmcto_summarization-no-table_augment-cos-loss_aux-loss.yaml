@@ -1,3 +1,7 @@
-__base__:
-    - mmcto_summarization-no-table_aux-loss.yaml
-    - mmcto_summarization-no-table_augment-cos-loss.yaml
+__base__: ../base/mmcto_summarization-no-table_augment-cos-loss_aux-loss.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_augment
