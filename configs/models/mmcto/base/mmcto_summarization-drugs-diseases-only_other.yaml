@@ -1,0 +1,8 @@
+__base__: mmcto.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                final_input_parts: [summarization, drugs, diseases]
+                gate_input_parts: [description, smiless]

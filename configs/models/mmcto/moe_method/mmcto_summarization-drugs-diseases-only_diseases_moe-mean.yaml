@@ -1,0 +1,7 @@
+__base__: mmcto_summarization-drugs-diseases-only_diseases.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                moe_method: mean

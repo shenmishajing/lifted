@@ -1,0 +1,7 @@
+__base__: ../base/mmcto_summarization-drugs-diseases-only_diseases_aux-loss.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_auxiliary_loss

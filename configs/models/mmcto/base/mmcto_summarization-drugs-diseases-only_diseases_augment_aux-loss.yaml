@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_summarization-drugs-diseases-only_diseases_aux-loss.yaml
+    - mmcto_summarization-drugs-diseases-only_diseases_augment.yaml
