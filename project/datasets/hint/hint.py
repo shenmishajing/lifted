@@ -1,5 +1,6 @@
 import json
 import os
+from collections import defaultdict
 
 import pandas as pd
 import torch
@@ -32,12 +33,12 @@ class HINTDataset(BaseDataset):
 
         if max_lengths is None:
             max_lengths = dict(
-                table=1024,
-                summarization=1024,
-                smiless=1024,
-                drugs=64,
-                diseases=64,
-                description=1024,
+                table=1625,
+                summarization=265,
+                smiless=1627,
+                drugs=54,
+                diseases=38,
+                description=381,
             )
         self.max_lengths = max_lengths
         self.augment = augment
@@ -168,10 +169,27 @@ class HINTDataset(BaseDataset):
 
 
 def main():
-    HINTDataset(
-        ann_file_name="phase_I_train",
-        data_root="data/clinical-trial-outcome-prediction/data",
-    )
+    max_length = defaultdict(int)
+    for phase in ["I", "II", "III"]:
+        for split in ["train", "valid", "test"]:
+            dataset = HINTDataset(
+                ann_file_name=f"phase_{phase}_{split}",
+                data_root="data/clinical-trial-outcome-prediction/data",
+            )
+            for i in range(len(dataset)):
+                data = dataset[i]
+                for name in [
+                    "table",
+                    "summarization",
+                    "smiless",
+                    "drugs",
+                    "diseases",
+                    "description",
+                ]:
+                    max_length[name] = max(
+                        data[name].data["input_ids"].shape[-1], max_length[name]
+                    )
+    print(max_length)
 
 
 if __name__ == "__main__":
