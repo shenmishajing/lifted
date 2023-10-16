@@ -170,8 +170,11 @@ class HINTDataset(BaseDataset):
 
 def main():
     max_length = defaultdict(int)
+    labels = {}
     for phase in ["I", "II", "III"]:
+        labels[phase] = {}
         for split in ["train", "valid", "test"]:
+            labels[phase][split] = [0, 0]
             dataset = HINTDataset(
                 ann_file_name=f"phase_{phase}_{split}",
                 data_root="data/clinical-trial-outcome-prediction/data",
@@ -189,6 +192,9 @@ def main():
                     max_length[name] = max(
                         data[name].data["input_ids"].shape[-1], max_length[name]
                     )
+                labels[phase][split][data["label"].item()] += 1
+            labels[phase][split] = labels[phase][split][1] / sum(labels[phase][split])
+    print(labels)
     print(max_length)
 
 
