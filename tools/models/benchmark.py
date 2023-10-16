@@ -68,7 +68,7 @@ def fit_modal(
 
 
 def hint(datasets, metrics, datas, *args, **kwargs):
-    model = HINT(highway_num_layer=2, epoch=1, lr=1e-3)
+    model = HINT(highway_num_layer=2, epoch=5, lr=1e-3)
     model.fit(datasets["train"], datasets["valid"])
 
     result = {}
