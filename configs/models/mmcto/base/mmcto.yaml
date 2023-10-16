@@ -1,5 +1,18 @@
+__import__:
+    encoder: &encoder
+        class_path: torch.nn.TransformerEncoder
+        init_args:
+            encoder_layer:
+                class_path: torch.nn.TransformerEncoderLayer
+                init_args:
+                    d_model: 128
+                    nhead: 128
+                    activation: relu
+                    batch_first: true
+            num_layers: 2
+
 model:
-    class_path: lightning_template.LightningModule
+    class_path: project.models.LightningModule
     init_args:
         model:
             class_path: project.models.MMCTO
@@ -8,72 +21,12 @@ model:
                     class_path: torch.nn.ModuleDict
                     init_args:
                         modules:
-                            table:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
-                            summarization:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
-                            smiless:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
-                            description:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
-                            drugs:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
-                            diseases:
-                                class_path: torch.nn.TransformerEncoder
-                                init_args:
-                                    encoder_layer:
-                                        class_path: torch.nn.TransformerEncoderLayer
-                                        init_args:
-                                            d_model: 128
-                                            nhead: 2
-                                            activation: relu
-                                            batch_first: true
-                                    num_layers: 2
+                            table: *encoder
+                            summarization: *encoder
+                            smiless: *encoder
+                            description: *encoder
+                            drugs: *encoder
+                            diseases: *encoder
                 final_input_parts: [table, smiless, description]
                 gate_input_parts: [drugs, diseases]
                 # augment_prob:
