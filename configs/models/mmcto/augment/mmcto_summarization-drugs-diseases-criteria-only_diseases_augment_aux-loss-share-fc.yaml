@@ -1,0 +1,7 @@
+__base__: ../base/mmcto_summarization-drugs-diseases-criteria-only_diseases_augment_aux-loss-share-fc.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_augment

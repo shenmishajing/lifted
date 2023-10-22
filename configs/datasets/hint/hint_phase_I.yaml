@@ -38,7 +38,7 @@ data:
             # num_workers: 8
             # persistent_workers: true
             prefetch_factor: 2
-            pin_memory: true
+            # pin_memory: true
 
 trainer:
     logger:
