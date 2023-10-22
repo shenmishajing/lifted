@@ -58,6 +58,11 @@ class MMCTO(nn.Module):
             if key not in self.input_parts:
                 del self.encoders[key]
 
+        if "criteria" in self.input_parts:
+            self.encoders["criteria"] = nn.Sequential(
+                nn.Linear(768 * 2, model_dim), nn.ReLU()
+            )
+
         if aux_loss_share_fc:
             aux_loss_fc = nn.Linear(model_dim, num_labels)
             self.aux_loss_fc = nn.ModuleDict(
@@ -162,11 +167,67 @@ class MMCTO(nn.Module):
             :, 0, ...
         ]
 
+    def calculate_consistency_and_contrastive_loss(
+        self,
+        key,
+        feature,
+        disturbed_feature,
+        aug_feature=None,
+        aug_disturbed_feature=None,
+    ):
+        losses = {}
+        losses[f"{key}_consistency_loss"] = self.similarity(feature, disturbed_feature)
+
+        if self.contrastive_loss:
+            losses[f"{key}_contrastive_loss"] = (
+                4
+                - self.similarity(feature, aug_feature)
+                - self.similarity(feature, aug_disturbed_feature)
+                - self.similarity(disturbed_feature, aug_feature)
+                - self.similarity(disturbed_feature, aug_disturbed_feature)
+            )
+
+        if self.inverse_consistency_loss:
+            losses[f"{key}_inverse_consistency_loss"] = self.similarity(
+                aug_feature, aug_disturbed_feature
+            )
+        return losses
+
     def forward(self, data):
         datas = {}
         losses = {}
 
         embedding_index = -1
+
+        if "criteria" in self.input_parts:
+            key = "criteria"
+            feature = self.encoders[key](data[key])
+            datas[key] = feature
+
+            if self.augment_prob > 0:
+                lamb = self.generate_random_lambda(data[key])
+
+                if self.contrastive_loss or self.inverse_consistency_loss:
+                    aug_feature = self.encoders[key](data["augment"][key])
+                    aug_disturbed_feature = self.encoders[key](
+                        (1 - lamb) * data["augment"][key] + lamb * data[key]
+                    )
+                else:
+                    aug_feature = None
+                    aug_disturbed_feature = None
+
+                disturbed_feature = self.encoders[key](
+                    (1 - lamb) * data[key] + lamb * data["augment"][key]
+                )
+                losses.update(
+                    self.calculate_consistency_and_contrastive_loss(
+                        key,
+                        feature,
+                        disturbed_feature,
+                        aug_feature,
+                        aug_disturbed_feature,
+                    )
+                )
 
         for key in ["table", "summarization"] + [
             f"{k}_{p}"
@@ -197,7 +258,10 @@ class MMCTO(nn.Module):
                         key,
                     )
                 else:
-                    del aug_attetion_mask
+                    aug_feature = None
+                    aug_disturbed_feature = None
+
+                del aug_attetion_mask
 
                 disturbed_feature = self.encode(
                     (1 - lamb) * embedding + lamb * aug_embedding,
@@ -206,27 +270,15 @@ class MMCTO(nn.Module):
                 )
                 del aug_embedding, embedding, attetion_mask, lamb
 
-                losses[f"{key}_consistency_loss"] = self.similarity(
-                    feature, disturbed_feature
+                losses.update(
+                    self.calculate_consistency_and_contrastive_loss(
+                        key,
+                        feature,
+                        disturbed_feature,
+                        aug_feature,
+                        aug_disturbed_feature,
+                    )
                 )
-
-                if self.contrastive_loss:
-                    losses[f"{key}_contrastive_loss"] = (
-                        4
-                        - self.similarity(feature, aug_feature)
-                        - self.similarity(feature, aug_disturbed_feature)
-                        - self.similarity(disturbed_feature, aug_feature)
-                        - self.similarity(disturbed_feature, aug_disturbed_feature)
-                    )
-
-                del disturbed_feature
-
-                if self.inverse_consistency_loss:
-                    losses[f"{key}_inverse_consistency_loss"] = self.similarity(
-                        aug_feature, aug_disturbed_feature
-                    )
-                if self.contrastive_loss or self.inverse_consistency_loss:
-                    del aug_feature, aug_disturbed_feature
 
         for key in ["smiless", "description", "drugs", "diseases"]:
             if key not in self.input_parts:
@@ -276,27 +328,14 @@ class MMCTO(nn.Module):
                     ).mean(dim=0)[None]
                     del aug_embedding, embedding, attetion_mask, lamb
 
-                    losses[f"{key}_consistency_loss"].append(
-                        self.similarity(feature, disturbed_feature)
-                    )
-
-                    if self.contrastive_loss:
-                        losses[f"{key}_contrastive_loss"].append(
-                            4
-                            - self.similarity(feature, aug_feature)
-                            - self.similarity(feature, aug_disturbed_feature)
-                            - self.similarity(disturbed_feature, aug_feature)
-                            - self.similarity(disturbed_feature, aug_disturbed_feature)
-                        )
-
-                    del disturbed_feature
-
-                    if self.inverse_consistency_loss:
-                        losses[f"{key}_inverse_consistency_loss"].append(
-                            self.similarity(aug_feature, aug_disturbed_feature)
-                        )
-                    if self.contrastive_loss or self.inverse_consistency_loss:
-                        del aug_feature, aug_disturbed_feature
+                    for k, v in self.calculate_consistency_and_contrastive_loss(
+                        key,
+                        feature,
+                        disturbed_feature,
+                        aug_feature,
+                        aug_disturbed_feature,
+                    ).items():
+                        losses[k].append(v)
 
             datas[key] = torch.cat(datas[key])
 
@@ -317,6 +356,7 @@ class MMCTO(nn.Module):
                 )
                 for part, fc in self.aux_loss_fc.items()
             }
+            hidden_states = {"aux_losses": aux_losses}
             if self.weighted_aux_loss:
                 if self.moe_method != "weighted":
                     aux_losses = {
@@ -331,6 +371,7 @@ class MMCTO(nn.Module):
                     torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
                 )
                 gate_data = torch.softmax(gate_data, dim=-1)
+                hidden_states["moe_weights"] = gate_data
                 if self.weighted_aux_loss:
                     aux_losses = {
                         k: (aux_losses[k] * gate_data[..., idx]).mean()
@@ -358,5 +399,10 @@ class MMCTO(nn.Module):
             metrics = {"preds": pred, "target": data["label"]}
         else:
             metrics = {}
+            hidden_states = {}
 
-        return {"loss_dict": losses, "metric_dict": metrics}
+        return {
+            "loss_dict": losses,
+            "metric_dict": metrics,
+            "hidden_state_dict": hidden_states,
+        }

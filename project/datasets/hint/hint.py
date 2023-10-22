@@ -7,6 +7,8 @@ import torch
 from mmengine.dataset import BaseDataset
 from transformers import AutoTokenizer
 
+from .protocol_encode import load_sentence_2_vec, protocol2feature
+
 
 class HINTDataset(BaseDataset):
     """
@@ -29,6 +31,7 @@ class HINTDataset(BaseDataset):
                 table_path="text_description/processed",
                 summarization_path="brief_summary/processed",
                 drug_description_path="drugbank/drug_description.json",
+                sentence_path="sentence2embedding.pkl",
             )
 
         if max_lengths is None:
@@ -61,6 +64,10 @@ class HINTDataset(BaseDataset):
                 if name in batch[0]:
                     res[name] = torch.stack([b[name] for b in batch], dim=0)
 
+            for name in ["criteria"]:
+                if name in batch[0]:
+                    res[name] = torch.cat([b[name] for b in batch], dim=0)
+
             for name in ["table", "summarization"] + [
                 f"{k}_{p}"
                 for k in ["smiless", "drugs", "diseases"]
@@ -71,7 +78,7 @@ class HINTDataset(BaseDataset):
                     for k in batch[0][name]:
                         res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
 
-            for name in ["smiless", "drugs", "diseases", "description"]:
+            for name in ["smiless", "drugs", "diseases", "description", "idx"]:
                 if name in batch[0]:
                     res[name] = [b[name] for b in batch]
             return res
@@ -134,14 +141,27 @@ class HINTDataset(BaseDataset):
         else:
             drug_description = None
 
+        if os.path.exists(self.data_prefix["sentence_path"]):
+            sentence2vec = load_sentence_2_vec(self.data_prefix["sentence_path"])
+
         data_list = []
         for i, row in data.iterrows():
             flag = True
 
-            cur_data = {}
+            cur_data = {"idx": i}
 
             if "label" in row:
                 cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
+
+            if "criteria" in row:
+                inclusion_feature, exclusion_feature = protocol2feature(
+                    row["criteria"], sentence2vec
+                )
+                inclusion_feature = inclusion_feature.mean(0).view(1, -1)
+                exclusion_feature = exclusion_feature.mean(0).view(1, -1)
+                cur_data["criteria"] = torch.cat(
+                    [inclusion_feature, exclusion_feature], 1
+                )
 
             for name in ["smiless", "drugs", "diseases"]:
                 if name in row:
