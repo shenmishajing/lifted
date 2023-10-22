@@ -1,4 +1,5 @@
 # load demo data
+import json
 import os
 import pickle
 import random
@@ -39,9 +40,38 @@ def parse_results(data):
     return result
 
 
+def bootstrap_test(preds, target, metrics, bootstrap_num=20):
+    results = []
+    for _ in range(bootstrap_num):
+        cur_result = {}
+        idx = torch.randint_like(target, 0, len(target))
+        cur_result["preds"] = preds[idx]
+        cur_result["target"] = target[idx]
+
+        metrics.update(**cur_result)
+        results.append(metrics.compute())
+        metrics.reset()
+
+    result = {}
+    if len(results) == 1:
+        result = results[0]
+    elif len(results) > 1:
+        for key in results[0]:
+            data = torch.stack([r[key] for r in results], dim=0).to(torch.float32)
+            if "statscores" in key:
+                result[f"{key}_min"] = data.min()
+                result[f"{key}_max"] = data.max()
+            result[f"{key}_mean"] = data.mean()
+            result[f"{key}_std"] = data.std()
+        for key in result:
+            result[key] = result[key].item()
+    return result
+
+
 def fit_modal(
     model_name,
     phase,
+    no_bootstrap_test,
     n=30,
     world_size=1,
     rank=0,
@@ -59,15 +89,19 @@ def fit_modal(
         result = model_map[model_name](
             *args,
             **kwargs,
+            no_bootstrap_test=no_bootstrap_test,
             seed=seed,
             model_name=model_name,
             output_path=os.path.join(output_path, str(i)),
         )
         result["seed"] = seed
-        pickle.dump(result, open(os.path.join(output_path, f"{i}.pkl"), "wb"))
+        if no_bootstrap_test:
+            pickle.dump(result, open(os.path.join(output_path, f"{i}.pkl"), "wb"))
+        else:
+            json.dump(result, open(os.path.join(output_path, f"{i}.json"), "w"))
 
 
-def hint(datasets, metrics, datas, *args, **kwargs):
+def hint(datasets, metrics, datas, no_bootstrap_test, *args, **kwargs):
     model = HINT(highway_num_layer=2, epoch=5, lr=1e-3)
     model.fit(datasets["train"], datasets["valid"])
 
@@ -78,17 +112,25 @@ def hint(datasets, metrics, datas, *args, **kwargs):
         target = {k: v[0] for k, v in zip(target["index"], target["data"])}
         target = torch.tensor([target[k[0]] for k in preds])
         preds = torch.tensor([k[1] for k in preds])
-        result[split] = metrics(preds, target)
-        metrics.reset()
+        if no_bootstrap_test:
+            result[split] = metrics(preds, target)
+            metrics.reset()
+        else:
+            result[split] = bootstrap_test(preds, target, metrics)
 
     return result
 
 
-def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
+def spot(
+    datasets, metrics, model_name, no_bootstrap_test, seed, output_path, *args, **kwargs
+):
     model_args = {"seed": seed, "output_dir": output_path}
 
     if "hint" in model_name:
-        model_args["learning_rate"] = 1e-3
+        if "low_lr" in model_name:
+            model_args["learning_rate"] = 3e-4
+        else:
+            model_args["learning_rate"] = 1e-3
         model_args["weight_decay"] = 0
 
     if "5e" in model_name:
@@ -103,8 +145,11 @@ def spot(datasets, metrics, model_name, seed, output_path, *args, **kwargs):
         preds = model.predict(datasets[split])
         target = torch.tensor(preds["label"])
         preds = torch.tensor(preds["pred"][:, 0])
-        result[split] = metrics(preds, target)
-        metrics.reset()
+        if no_bootstrap_test:
+            result[split] = metrics(preds, target)
+            metrics.reset()
+        else:
+            result[split] = bootstrap_test(preds, target, metrics)
 
     shutil.rmtree(output_path)
 
@@ -121,6 +166,11 @@ def argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="spot_hint,spot_hint_5e,spot,hint")
     parser.add_argument("--phase", type=str, default="I,II,III")
+    parser.add_argument(
+        "--no-bootstrap-test",
+        action="store_false",
+        help="do not use bootstrap test",
+    )
     parser.add_argument("--output-path", type=str, default="results")
     parser.add_argument("--n", type=int, default=30)
     parser.add_argument("--world-size", type=int, default=1)
