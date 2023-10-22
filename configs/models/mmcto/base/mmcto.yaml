@@ -27,6 +27,9 @@ model:
                             description: *encoder
                             drugs: *encoder
                             diseases: *encoder
+                            smiless_summarization: *encoder
+                            drugs_summarization: *encoder
+                            diseases_summarization: *encoder
                 final_input_parts: [table, smiless, description]
                 gate_input_parts: [drugs, diseases]
                 # augment_prob:

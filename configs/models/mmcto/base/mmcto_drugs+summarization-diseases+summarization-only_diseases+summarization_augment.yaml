@@ -1,0 +1,7 @@
+__base__: mmcto_drugs+summarization-diseases+summarization-only_diseases+summarization.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                augment_prob: 0.5

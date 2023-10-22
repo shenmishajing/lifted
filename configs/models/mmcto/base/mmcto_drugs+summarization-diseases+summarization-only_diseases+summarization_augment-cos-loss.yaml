@@ -1,0 +1,7 @@
+__base__: mmcto_drugs+summarization-diseases+summarization-only_diseases+summarization_augment.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                use_cosin_simiarity_loss: true

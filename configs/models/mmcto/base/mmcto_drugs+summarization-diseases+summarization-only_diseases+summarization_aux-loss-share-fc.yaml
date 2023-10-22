@@ -1,0 +1,7 @@
+__base__: mmcto_drugs+summarization-diseases+summarization-only_diseases+summarization_aux-loss.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                aux_loss_share_fc: true
