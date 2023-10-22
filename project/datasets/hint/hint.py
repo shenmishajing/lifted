@@ -36,8 +36,14 @@ class HINTDataset(BaseDataset):
                 table=1625,
                 summarization=265,
                 smiless=1627,
+                smiless_concat=1075,
+                smiless_summarization=1182,
                 drugs=54,
+                drugs_concat=193,
+                drugs_summarization=285,
                 diseases=38,
+                diseases_concat=461,
+                diseases_summarization=560,
                 description=381,
             )
         self.max_lengths = max_lengths
@@ -55,7 +61,11 @@ class HINTDataset(BaseDataset):
                 if name in batch[0]:
                     res[name] = torch.stack([b[name] for b in batch], dim=0)
 
-            for name in ["table", "summarization"]:
+            for name in ["table", "summarization"] + [
+                f"{k}_{p}"
+                for k in ["smiless", "drugs", "diseases"]
+                for p in ["concat", "summarization"]
+            ]:
                 if name in batch[0]:
                     res[name] = {}
                     for k in batch[0][name]:
@@ -76,6 +86,7 @@ class HINTDataset(BaseDataset):
         def tokenize(text, max_length):
             return self.tokenizer(
                 text,
+                # padding=True,
                 padding="max_length",
                 truncation=True,
                 max_length=max_length,
@@ -134,10 +145,20 @@ class HINTDataset(BaseDataset):
 
             for name in ["smiless", "drugs", "diseases"]:
                 if name in row:
-                    if not eval(row[name]):
+                    d = list(set(eval(row[name])))
+                    if not d:
                         flag = False
                         continue
-                    cur_data[name] = tokenize(eval(row[name]), self.max_lengths[name])
+                    cur_data[name] = tokenize(d, self.max_lengths[name])
+                    d = ",".join(d)
+                    cur_data[f"{name}_concat"] = tokenize(
+                        d, self.max_lengths[f"{name}_concat"]
+                    )
+                    if summarization_data:
+                        cur_data[f"{name}_summarization"] = tokenize(
+                            f"{name}: {d}; summarization: {summarization_data[i]}",
+                            self.max_lengths[f"{name}_summarization"],
+                        )
 
             for name, name_data in zip(
                 ["table", "summarization"], [table_data, summarization_data]
@@ -169,11 +190,13 @@ class HINTDataset(BaseDataset):
 
 
 def main():
-    max_length = defaultdict(int)
+    # max_length = defaultdict(int)
+    max_length = defaultdict(list)
     labels = {}
     for phase in ["I", "II", "III"]:
         labels[phase] = {}
-        for split in ["train", "valid", "test"]:
+        # for split in ["train", "valid", "test"]:
+        for split in ["test"]:
             labels[phase][split] = [0, 0]
             dataset = HINTDataset(
                 ann_file_name=f"phase_{phase}_{split}",
@@ -181,19 +204,17 @@ def main():
             )
             for i in range(len(dataset)):
                 data = dataset[i]
-                for name in [
-                    "table",
-                    "summarization",
-                    "smiless",
-                    "drugs",
-                    "diseases",
-                    "description",
-                ]:
-                    max_length[name] = max(
-                        data[name].data["input_ids"].shape[-1], max_length[name]
-                    )
+                for name in data:
+                    if name in ["label", "sample_idx"]:
+                        continue
+                    # max_length[name] = max(
+                    #     data[name].data["input_ids"].shape[-1], max_length[name]
+                    # )
+                    max_length[name].append(data[name].data["input_ids"].shape[-1])
                 labels[phase][split][data["label"].item()] += 1
             labels[phase][split] = labels[phase][split][1] / sum(labels[phase][split])
+    for name in max_length:
+        max_length[name] = sorted(max_length[name], reverse=True)
     print(labels)
     print(max_length)
 

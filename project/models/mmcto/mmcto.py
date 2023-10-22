@@ -168,7 +168,11 @@ class MMCTO(nn.Module):
 
         embedding_index = -1
 
-        for key in ["table", "summarization"]:
+        for key in ["table", "summarization"] + [
+            f"{k}_{p}"
+            for k in ["smiless", "drugs", "diseases"]
+            for p in ["concat", "summarization"]
+        ]:
             if key not in self.input_parts:
                 continue
             embedding_index += 1
