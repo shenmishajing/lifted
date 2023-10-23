@@ -146,14 +146,14 @@ class HINTDataset(BaseDataset):
 
         data_list = []
         for i, row in data.iterrows():
-            flag = True
-
             cur_data = {"idx": i}
 
             if "label" in row:
                 cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
             if "criteria" in row:
+                if not isinstance(row["criteria"], str):
+                    continue
                 inclusion_feature, exclusion_feature = protocol2feature(
                     row["criteria"], sentence2vec
                 )
@@ -162,6 +162,8 @@ class HINTDataset(BaseDataset):
                 cur_data["criteria"] = torch.cat(
                     [inclusion_feature, exclusion_feature], 1
                 )
+
+            flag = True
 
             for name in ["smiless", "drugs", "diseases"]:
                 if name in row:
