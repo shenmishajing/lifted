@@ -356,7 +356,10 @@ class MMCTO(nn.Module):
                 )
                 for part, fc in self.aux_loss_fc.items()
             }
-            hidden_states = {"aux_losses": aux_losses}
+            hidden_states = {
+                "input_parts": self.final_input_parts,
+                "aux_losses": aux_losses,
+            }
             if self.weighted_aux_loss:
                 if self.moe_method != "weighted":
                     aux_losses = {

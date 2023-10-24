@@ -103,10 +103,11 @@ class LightningModule(_LightningModule):
             (metric_dict["preds"] - metric_dict["target"]).abs().cpu()
         )
         self.hidden_states["idx"].extend(batch["idx"])
+        self.hidden_states["input_parts"] = batch["input_parts"]
 
     def on_predict_epoch_end(self) -> None:
         for key in self.hidden_states:
-            if key == "idx":
+            if key in ["idx", "input_parts"]:
                 continue
             self.hidden_states[key] = torch.cat(self.hidden_states[key], dim=0)
 
