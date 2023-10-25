@@ -121,7 +121,9 @@ class LightningModule(_LightningModule):
 
         idx = self.hidden_states["error"].topk(10, dim=0).indices
         for key in self.hidden_states:
-            if key == "idx":
+            if key == "input_parts":
+                continue
+            elif key == "idx":
                 self.hidden_states[key] = [self.hidden_states[key][i] for i in idx]
             else:
                 self.hidden_states[key] = self.hidden_states[key][idx]
