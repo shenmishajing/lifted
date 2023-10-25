@@ -96,6 +96,7 @@ class LightningModule(_LightningModule):
     def predict_hidden_state(
         self, batch, *args, hidden_state_dict, metric_dict, **kwargs
     ):
+        self.hidden_states["input_parts"] = hidden_state_dict["input_parts"]
         self.hidden_states["moe_weights"].append(hidden_state_dict["moe_weights"].cpu())
         self.hidden_states["preds"].append(metric_dict["preds"].cpu())
         self.hidden_states["target"].append(metric_dict["target"].cpu())
@@ -103,7 +104,6 @@ class LightningModule(_LightningModule):
             (metric_dict["preds"] - metric_dict["target"]).abs().cpu()
         )
         self.hidden_states["idx"].extend(batch["idx"])
-        self.hidden_states["input_parts"] = batch["input_parts"]
 
     def on_predict_epoch_end(self) -> None:
         for key in self.hidden_states:
