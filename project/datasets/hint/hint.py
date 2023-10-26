@@ -1,13 +1,13 @@
 import json
 import os
+import time
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 import torch
 from mmengine.dataset import BaseDataset
 from transformers import AutoTokenizer
-
-from .protocol_encode import load_sentence_2_vec, protocol2feature
 
 
 class HINTDataset(BaseDataset):
@@ -31,7 +31,7 @@ class HINTDataset(BaseDataset):
                 table_path="text_description/processed",
                 summarization_path="brief_summary/processed",
                 drug_description_path="drugbank/drug_description.json",
-                sentence_path="sentence2embedding.pkl",
+                criteria_path="criteria",
             )
 
         if max_lengths is None:
@@ -60,13 +60,9 @@ class HINTDataset(BaseDataset):
         def collate(batch):
             res = {}
 
-            for name in ["label"]:
+            for name in ["label", "criteria"]:
                 if name in batch[0]:
                     res[name] = torch.stack([b[name] for b in batch], dim=0)
-
-            for name in ["criteria"]:
-                if name in batch[0]:
-                    res[name] = torch.cat([b[name] for b in batch], dim=0)
 
             for name in ["table", "summarization"] + [
                 f"{k}_{p}"
@@ -141,8 +137,19 @@ class HINTDataset(BaseDataset):
         else:
             drug_description = None
 
-        if os.path.exists(self.data_prefix["sentence_path"]):
-            sentence2vec = load_sentence_2_vec(self.data_prefix["sentence_path"])
+        if os.path.exists(self.data_prefix["criteria_path"]):
+            print("load criteria")
+            start = time.time()
+            criteria_data = torch.from_numpy(
+                np.load(
+                    os.path.join(
+                        self.data_prefix["criteria_path"], f"{self.ann_file_name}.npy"
+                    )
+                )
+            )
+            print(f"load criteria cost {time.time()-start} seconds")
+        else:
+            criteria_data = None
 
         data_list = []
         for i, row in data.iterrows():
@@ -151,17 +158,10 @@ class HINTDataset(BaseDataset):
             if "label" in row:
                 cur_data["label"] = torch.tensor(row["label"], dtype=torch.long)
 
-            if "criteria" in row:
-                if not isinstance(row["criteria"], str):
+            if criteria_data is not None:
+                cur_data["criteria"] = criteria_data[i]
+                if (cur_data["criteria"] == 0).all():
                     continue
-                inclusion_feature, exclusion_feature = protocol2feature(
-                    row["criteria"], sentence2vec
-                )
-                inclusion_feature = inclusion_feature.mean(0).view(1, -1)
-                exclusion_feature = exclusion_feature.mean(0).view(1, -1)
-                cur_data["criteria"] = torch.cat(
-                    [inclusion_feature, exclusion_feature], 1
-                )
 
             flag = True
 
