@@ -21,6 +21,7 @@ class MMCTO(nn.Module):
         num_labels: int = 1,
         augment_prob=0.0,
         augment_eps=0.1,
+        piror_init=1,
         contrastive_loss=False,
         inverse_consistency_loss=False,
         use_cosin_simiarity_loss=False,
@@ -53,6 +54,8 @@ class MMCTO(nn.Module):
 
         self.embedding = nn.Embedding(vocab_size, model_dim)
         self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
+        self.piror = nn.Parameter(torch.empty(len(self.final_input_parts)))
+        self.piror_init = piror_init
 
         for key in list(self.encoders):
             if key not in self.input_parts:
@@ -60,7 +63,7 @@ class MMCTO(nn.Module):
 
         if "criteria" in self.input_parts:
             self.encoders["criteria"] = nn.Sequential(
-                nn.Linear(768 * 2, model_dim), nn.ReLU()
+                nn.Linear(768 * 2, model_dim), nn.ReLU(), nn.LayerNorm(model_dim)
             )
 
         if aux_loss_share_fc:
@@ -95,6 +98,7 @@ class MMCTO(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_normal_(self.cls_tokens)
+        nn.init.normal_(self.piror, self.piror_init, 0.1)
 
     def add_embedding(self, input_ids, attention_mask=None, embedding_index=0):
         embedding = self.embedding(input_ids)
@@ -370,10 +374,14 @@ class MMCTO(nn.Module):
                 aux_losses = {k: aux_losses[k].mean() for k in self.aux_loss_fc}
 
             if self.moe_method == "weighted":
-                gate_data = self.gate_fc(
-                    torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
+                gate_data = (
+                    self.gate_fc(
+                        torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
+                    )
+                    * self.piror[None]
                 )
                 gate_data = torch.softmax(gate_data, dim=-1)
+                hidden_states["piror"] = self.piror
                 hidden_states["moe_weights"] = gate_data
                 if self.weighted_aux_loss:
                     aux_losses = {

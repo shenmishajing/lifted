@@ -97,6 +97,7 @@ class LightningModule(_LightningModule):
         self, batch, *args, hidden_state_dict, metric_dict, **kwargs
     ):
         self.hidden_states["input_parts"] = hidden_state_dict["input_parts"]
+        self.hidden_states["piror"] = hidden_state_dict["piror"].cpu()
         self.hidden_states["moe_weights"].append(hidden_state_dict["moe_weights"].cpu())
         self.hidden_states["preds"].append(metric_dict["preds"].cpu())
         self.hidden_states["target"].append(metric_dict["target"].cpu())
@@ -107,7 +108,7 @@ class LightningModule(_LightningModule):
 
     def on_predict_epoch_end(self) -> None:
         for key in self.hidden_states:
-            if key in ["idx", "input_parts"]:
+            if key in ["idx", "input_parts", "piror"]:
                 continue
             self.hidden_states[key] = torch.cat(self.hidden_states[key], dim=0)
 
@@ -121,7 +122,7 @@ class LightningModule(_LightningModule):
 
         idx = self.hidden_states["error"].topk(10, dim=0).indices
         for key in self.hidden_states:
-            if key == "input_parts":
+            if key in ["input_parts", "piror"]:
                 continue
             elif key == "idx":
                 self.hidden_states[key] = [self.hidden_states[key][i] for i in idx]
