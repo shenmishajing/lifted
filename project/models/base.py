@@ -156,7 +156,10 @@ class LightningModule(_LightningModule):
         os.makedirs(moe_weight_output_path, exist_ok=True)
 
         def plot_moe_weights(data, tick_label, output_path):
-            plt.bar(range(len(data)), data, tick_label=tick_label)
+            plt.bar_label(
+                plt.bar(range(len(data)), data, tick_label=tick_label),
+                label_type="edge",
+            )
             plt.savefig(output_path)
             plt.cla()
 
