@@ -5,6 +5,7 @@ from collections import defaultdict
 import pandas as pd
 import torch
 from lightning_template import LightningModule as _LightningModule
+from matplotlib import pyplot as plt
 
 
 class LightningModule(_LightningModule):
@@ -148,3 +149,26 @@ class LightningModule(_LightningModule):
             os.path.join(self.predict_tasks["hidden_state"], "top10.csv"),
             index=False,
         )
+
+        moe_weight_output_path = os.path.join(
+            self.predict_tasks["hidden_state"], "moe_weights"
+        )
+        os.makedirs(moe_weight_output_path, exist_ok=True)
+
+        def plot_moe_weights(data, tick_label, output_path):
+            plt.bar(range(len(data)), data, tick_label=tick_label)
+            plt.savefig(output_path)
+            plt.cla()
+
+        plot_moe_weights(
+            self.hidden_states["piror"],
+            self.hidden_states["input_parts"],
+            os.path.join(moe_weight_output_path, "piror.png"),
+        )
+
+        for i, moe_weights in enumerate(self.hidden_states["moe_weights"]):
+            plot_moe_weights(
+                moe_weights,
+                self.hidden_states["input_parts"],
+                os.path.join(moe_weight_output_path, f"{i}.png"),
+            )
