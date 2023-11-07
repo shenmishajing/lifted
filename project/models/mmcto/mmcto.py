@@ -21,7 +21,8 @@ class MMCTO(nn.Module):
         num_labels: int = 1,
         augment_prob=0.0,
         augment_eps=0.1,
-        piror_init=1,
+        piror_init=0,
+        multiply_disturb=False,
         contrastive_loss=False,
         inverse_consistency_loss=False,
         use_cosin_simiarity_loss=False,
@@ -56,6 +57,7 @@ class MMCTO(nn.Module):
         self.cls_tokens = nn.Parameter(torch.empty(len(self.input_parts), model_dim))
         self.piror = nn.Parameter(torch.empty(len(self.final_input_parts)))
         self.piror_init = piror_init
+        self.multiply_disturb = multiply_disturb
 
         for key in list(self.encoders):
             if key not in self.input_parts:
@@ -166,6 +168,24 @@ class MMCTO(nn.Module):
         )
         return lamb
 
+    def disturb_embedding(self, embedding, lamb, disturb_embedding=None):
+        if self.multiply_disturb:
+            disturb_embedding = (
+                torch.rand(
+                    embedding.shape,
+                    device=embedding.device,
+                    dtype=embedding.dtype,
+                )
+                * 2
+                - 1
+            ).exp()
+            disturb_embedding = disturb_embedding.where(
+                lamb, torch.ones_like(disturb_embedding)
+            )
+            return embedding * disturb_embedding
+        else:
+            return (1 - lamb) * embedding + lamb * disturb_embedding
+
     def encode(self, embedding, attetion_mask, key):
         return self.encoders[key](embedding, src_key_padding_mask=attetion_mask)[
             :, 0, ...
@@ -214,14 +234,14 @@ class MMCTO(nn.Module):
                 if self.contrastive_loss or self.inverse_consistency_loss:
                     aug_feature = self.encoders[key](data["augment"][key])
                     aug_disturbed_feature = self.encoders[key](
-                        (1 - lamb) * data["augment"][key] + lamb * data[key]
+                        self.disturb_embedding(data["augment"][key], lamb, data[key])
                     )
                 else:
                     aug_feature = None
                     aug_disturbed_feature = None
 
                 disturbed_feature = self.encoders[key](
-                    (1 - lamb) * data[key] + lamb * data["augment"][key]
+                    self.disturb_embedding(data[key], lamb, data["augment"][key])
                 )
                 losses.update(
                     self.calculate_consistency_and_contrastive_loss(
@@ -257,7 +277,7 @@ class MMCTO(nn.Module):
                 if self.contrastive_loss or self.inverse_consistency_loss:
                     aug_feature = self.encode(aug_embedding, aug_attetion_mask, key)
                     aug_disturbed_feature = self.encode(
-                        (1 - lamb) * aug_embedding + lamb * embedding,
+                        self.disturb_embedding(aug_embedding, lamb, embedding),
                         aug_attetion_mask,
                         key,
                     )
@@ -268,7 +288,7 @@ class MMCTO(nn.Module):
                 del aug_attetion_mask
 
                 disturbed_feature = self.encode(
-                    (1 - lamb) * embedding + lamb * aug_embedding,
+                    self.disturb_embedding(embedding, lamb, aug_embedding),
                     attetion_mask,
                     key,
                 )
@@ -318,7 +338,7 @@ class MMCTO(nn.Module):
                             aug_embedding, aug_attetion_mask, key
                         ).mean(dim=0)[None]
                         aug_disturbed_feature = self.encode(
-                            (1 - lamb) * aug_embedding + lamb * embedding,
+                            self.disturb_embedding(aug_embedding, lamb, embedding),
                             aug_attetion_mask,
                             key,
                         ).mean(dim=0)[None]
@@ -326,7 +346,7 @@ class MMCTO(nn.Module):
                         del aug_attetion_mask
 
                     disturbed_feature = self.encode(
-                        (1 - lamb) * embedding + lamb * aug_embedding,
+                        self.disturb_embedding(embedding, lamb, aug_embedding),
                         attetion_mask,
                         key,
                     ).mean(dim=0)[None]
