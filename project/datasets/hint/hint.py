@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from collections import defaultdict
 
 import numpy as np
@@ -138,8 +137,6 @@ class HINTDataset(BaseDataset):
             drug_description = None
 
         if os.path.exists(self.data_prefix["criteria_path"]):
-            print("load criteria")
-            start = time.time()
             criteria_data = torch.from_numpy(
                 np.load(
                     os.path.join(
@@ -147,7 +144,6 @@ class HINTDataset(BaseDataset):
                     )
                 )
             )
-            print(f"load criteria cost {time.time()-start} seconds")
         else:
             criteria_data = None
 
