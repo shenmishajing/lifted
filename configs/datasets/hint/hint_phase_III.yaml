@@ -8,15 +8,9 @@ data:
                     ann_file_name: phase_III_${split}
             val:
                 change_item:
-                    - - 0
-                      - init_args:
-                            ann_file_name: phase_III_${split}
                     - - 1
                       - init_args:
                             ann_file_name: phase_III_test
-            test:
-                init_args:
-                    ann_file_name: phase_III_${split}
 
 trainer:
     logger:
