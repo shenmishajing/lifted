@@ -36,7 +36,7 @@ trainer:
         - class_path: lightning_template.utils.callbacks.custom_repr.CustomReprCallback
         - class_path: lightning.pytorch.callbacks.LearningRateMonitor
     # train len
-    max_epochs: null
+    max_epochs: -1
     min_epochs: null
     max_steps: -1
     min_steps: null
@@ -52,12 +52,20 @@ trainer:
     limit_test_batches: 1.0
     limit_predict_batches: 1.0
     overfit_batches: 0.0
+    detect_anomaly: false
     # fast_dev_run: 10
     # profiler:
-    #     class_path: lightning.pytorch.profilers.AdvancedProfiler
+    #     class_path: lightning.pytorch.profilers.PyTorchProfiler
     #     init_args:
-    #         dirpath: .
-    #         filename: advanced_profiler
+    #         dirpath: profile
+    #         filename: pytorch_profiler
+    #     dict_kwargs:
+    #         use_cuda: true
+    #         record_shapes: true
+    #         profile_memory: true
+    #         with_flops: true
+    #         with_modules: true
+    #         # with_stack: true
     # speed up
     num_nodes: 1
     accelerator: auto
@@ -76,8 +84,6 @@ trainer:
     check_val_every_n_epoch: 1
     val_check_interval: 1.0
     log_every_n_steps: 50
-    # tools
-    detect_anomaly: false
 
 # seed
 seed_everything: null

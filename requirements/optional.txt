@@ -1,3 +1,0 @@
-wandb
-rich
-thop

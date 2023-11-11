@@ -1,4 +1,7 @@
 lightning-template
+wandb
+rich
+thop
 mmengine
 openai
 pandas
