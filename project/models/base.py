@@ -155,15 +155,21 @@ class LightningModule(_LightningModule):
         )
         os.makedirs(moe_weight_output_path, exist_ok=True)
 
-        def plot_moe_weights(data, tick_label, output_path):
+        def plot_moe_piror(data, labels, output_path):
             plt.bar_label(
-                plt.bar(range(len(data)), data, tick_label=tick_label),
+                plt.bar(range(len(data)), data, tick_label=labels),
                 label_type="edge",
             )
             plt.savefig(output_path)
             plt.cla()
 
-        plot_moe_weights(
+        def plot_moe_weights(data, labels, output_path):
+            plt.pie(data, labels=labels, autopct="%1.1f%%")
+            plt.axis("equal")
+            plt.savefig(output_path)
+            plt.cla()
+
+        plot_moe_piror(
             self.hidden_states["piror"],
             self.hidden_states["input_parts"],
             os.path.join(moe_weight_output_path, "piror.png"),
