@@ -1,0 +1,7 @@
+__base__: mmcto_summarization-drugs-diseases-criteria-only_same_aux-loss.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                weighted_aux_loss: true

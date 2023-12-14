@@ -1,0 +1,7 @@
+__base__: ../base/mmcto_summarization-drugs-diseases-criteria-only_same_augment-cos-loss_aux-loss.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: mmcto_augment

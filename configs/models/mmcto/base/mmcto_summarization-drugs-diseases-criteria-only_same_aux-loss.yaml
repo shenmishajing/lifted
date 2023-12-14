@@ -1,0 +1,7 @@
+__base__: mmcto_summarization-drugs-diseases-criteria-only_same.yaml
+
+model:
+    init_args:
+        model:
+            init_args:
+                aux_loss_parts: [summarization, drugs, diseases, criteria]
