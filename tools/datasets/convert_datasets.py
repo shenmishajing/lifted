@@ -260,6 +260,27 @@ def main():
                 ],
             },
         },
+        "hint_disease": {
+            "func": convert_hint,
+            "data_path": "data/clinical-trial-outcome-prediction/data",
+            "output_path": "disease",
+            "schema_definition": "diseases: list of disease names.\n",
+            "chat_kwargs": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "user",
+                        "content": "Here is the schema definition of the table:\n"
+                        + "$schema_definition\n"
+                        + "This is a sample from the table:\n"
+                        + "$linearization\n"
+                        + "Please briefly summary the sample with its value in one sentence. Do not say anything about the table.",
+                    },
+                ],
+            },
+        },
         "ct_gov": {
             "func": convert_ct_gov,
             "data_path": "data/clinical_trials_gov",
