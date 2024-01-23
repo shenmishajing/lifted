@@ -15,10 +15,10 @@ class LightningModule(_LightningModule):
         super().__init__(predict_tasks=predict_tasks, *args, **kwargs)
         self.bootstrap_num = bootstrap_num
 
-    def update_evaluator(self, evaluator, *args, **kwargs):
+    def update_evaluator(self, evaluator, *args, metrics, **kwargs):
         if "results" not in evaluator:
             evaluator["results"] = {}
-        for key, value in kwargs.items():
+        for key, value in metrics.items():
             if key not in evaluator["results"]:
                 evaluator["results"][key] = []
             evaluator["results"][key].append(value)
