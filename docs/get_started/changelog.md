@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2024-01-23)
+
+### Refactor
+
+- **format**: fix pre commit bug
+- **src layout**: use src layout
+
 ## 0.2.1 (2024-01-10)
 
 ### Refactor
