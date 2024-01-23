@@ -8,3 +8,7 @@ temp
 /checkpoints
 /demo_data
 /trial_search
+/experiments_records
+/results
+/huggingface
+/pretrained_model
