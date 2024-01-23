@@ -1,89 +1,92 @@
 trainer:
-    logger:
-        class_path: lightning_template.utils.loggers.wandb.WandbNamedLogger
-        init_args:
-            project: multi_modal_clinical_trial_outcome_prediction
-            save_dir: work_dirs
-            offline: false
-            tags: []
-    callbacks:
-        - class_path: lightning_template.utils.callbacks.model_checkpoint.ModelCheckpointWithLinkBest
-          init_args:
-              monitor: val/loss
-              filename: "epoch:{epoch}-val_loss:{val/loss:.4g}"
-              save_top_k: 3
-              save_last: true
-              save_best: true
-              mode: min
-              auto_insert_metric_name: false
-        - class_path: lightning_template.utils.progress.rich_progress.RichProgressBar
-          init_args:
-              show_version: false
-              show_eta_time: true
-        - class_path: lightning.pytorch.callbacks.RichModelSummary
-          init_args:
-              max_depth: 2
-        - class_path: lightning_template.utils.callbacks.set_precision_and_cudnn_callback.SetPrecisionAndCudnnCallback
-          init_args:
-              float32_matmul_precision: high
-              allow_fp16_reduced_precision_reduction: true
-              deterministic_debug_mode: default
-              cudnn_enabled: true
-        - class_path: lightning_template.utils.callbacks.set_wandb_logger_callback.SetWandbLoggerCallback
-          init_args:
-              watch_model_cfg:
-                  log: all
-        - class_path: lightning_template.utils.callbacks.custom_repr.CustomReprCallback
-        - class_path: lightning.pytorch.callbacks.LearningRateMonitor
-    # train len
-    max_epochs: -1
-    min_epochs: null
-    max_steps: -1
-    min_steps: null
-    max_time: null
-    # k fold cross validation
-    num_folds: null
-    # gradient clip
-    gradient_clip_val: null
-    gradient_clip_algorithm: null
-    # debug
-    limit_train_batches: 1.0
-    limit_val_batches: 1.0
-    limit_test_batches: 1.0
-    limit_predict_batches: 1.0
-    overfit_batches: 0.0
-    detect_anomaly: false
-    # fast_dev_run: 10
-    # profiler:
-    #     class_path: lightning.pytorch.profilers.PyTorchProfiler
-    #     init_args:
-    #         dirpath: profile
-    #         filename: pytorch_profiler
-    #     dict_kwargs:
-    #         use_cuda: true
-    #         record_shapes: true
-    #         profile_memory: true
-    #         with_flops: true
-    #         with_modules: true
-    #         # with_stack: true
-    # speed up
-    num_nodes: 1
-    accelerator: auto
-    devices: auto
-    # strategy:
-    #     class_path: lightning.pytorch.strategies.DDPStrategy
-    #     init_args:
-    #         find_unused_parameters: false
-    #         gradient_as_bucket_view: true
-    precision: 32
-    sync_batchnorm: false
-    accumulate_grad_batches: 1
-    benchmark: null
-    deterministic: false
-    # val and log
-    check_val_every_n_epoch: 1
-    val_check_interval: 1.0
-    log_every_n_steps: 50
+  logger:
+    class_path: lightning_template.utils.loggers.wandb.WandbNamedLogger
+    init_args:
+      project: multi_modal_clinical_trial_outcome_prediction
+      save_dir: work_dirs
+      offline: false
+      tags: []
+    # class_path: lightning.pytorch.loggers.TensorBoardLogger
+    # init_args:
+    #   save_dir: work_dirs
+  callbacks:
+    - class_path: lightning_template.utils.callbacks.model_checkpoint.ModelCheckpointWithLinkBest
+      init_args:
+        monitor: val/loss
+        filename: "epoch:{epoch}-val_loss:{val/loss:.4g}"
+        save_top_k: 3
+        save_last: true
+        save_best: true
+        mode: min
+        auto_insert_metric_name: false
+    - class_path: lightning_template.utils.progress.rich_progress.RichProgressBar
+      init_args:
+        show_version: false
+        show_eta_time: true
+    - class_path: lightning.pytorch.callbacks.RichModelSummary
+      init_args:
+        max_depth: 2
+    - class_path: lightning_template.utils.callbacks.set_precision_and_cudnn_callback.SetPrecisionAndCudnnCallback
+      init_args:
+        float32_matmul_precision: high
+        allow_fp16_reduced_precision_reduction: true
+        deterministic_debug_mode: default
+        cudnn_enabled: true
+    - class_path: lightning_template.utils.callbacks.set_wandb_logger_callback.SetWandbLoggerCallback
+      init_args:
+        watch_model_cfg:
+          log: all
+    - class_path: lightning_template.utils.callbacks.custom_repr.CustomReprCallback
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+  # train len
+  max_epochs: -1
+  min_epochs: null
+  max_steps: -1
+  min_steps: null
+  max_time: null
+  # k fold cross validation
+  num_folds: null
+  # gradient clip
+  gradient_clip_val: null
+  gradient_clip_algorithm: null
+  # debug
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  limit_test_batches: 1.0
+  limit_predict_batches: 1.0
+  overfit_batches: 0.0
+  detect_anomaly: false
+  # fast_dev_run: 5
+  # profiler:
+  #   class_path: lightning.pytorch.profilers.PyTorchProfiler
+  #   init_args:
+  #     dirpath: profile
+  #     filename: pytorch_profiler
+  #   dict_kwargs:
+  #     use_cuda: true
+  #     record_shapes: true
+  #     profile_memory: true
+  #     with_flops: true
+  #     with_modules: true
+  #     # with_stack: true
+  # speed up
+  num_nodes: 1
+  accelerator: auto
+  devices: auto
+  # strategy:
+  #   class_path: lightning.pytorch.strategies.DDPStrategy
+  #   init_args:
+  #     find_unused_parameters: false
+  #     gradient_as_bucket_view: true
+  precision: 32
+  sync_batchnorm: false
+  accumulate_grad_batches: 1
+  benchmark: null
+  deterministic: false
+  # val and log
+  check_val_every_n_epoch: 1
+  val_check_interval: 1.0
+  log_every_n_steps: 50
 
 # seed
 seed_everything: null

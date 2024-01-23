@@ -1,18 +1,10 @@
-## Introduction
+# Project Template
+
+This template project is based on [pytorch lightning](https://pytorch-lightning.readthedocs.io/en/stable/) and [lightning-template](https://github.com/shenmishajing/lightning_template). Please read the docs of them before using this template.
 
 ## Installation
 
-We recommend you use `conda` to install this project and all required packages with the specific version to recurrent our experiments and results of them. The following commands can be used to install this project and all required packages.
-
-```bash
-conda env create -f requirements/conda.yml -n <env_name>
-conda activate <env_name>
-pip install -e .
-```
-
-It is worth noting that you have to make sure that the cuda version of your machine is consistent with the version of the packages in `conda.yml`, since we have set the Pytorch version and cuda version in the `conda.yml`.
-
-If you want to write a new project based on this project, you can refer to [installation with pip docs](docs/installation/installation_with_pip.md) for details. Also, if you run into any problems with the installation through conda, you can try the installation with pip, but there is no guarantee that you can recurrent our results if so.
+See [installation docs](docs/get_started/installation.md) for details.
 
 ## Prepare
 
@@ -25,3 +17,36 @@ All our experiments run through a command line script called `cli`. You can refe
 ## Experiment
 
 See [experiment docs](docs/experiments/experiments.md) for details.
+
+## Contribution
+
+See [contribution docs](docs/get_started/contribution.md) for details.
+
+## Release versions
+
+We use [setuptools_scm](https://github.com/pypa/setuptools_scm/) for versioning. For the versions available, see the [tags](https://github.com/shenmishajing/project_template/tags) on this repository.
+
+## License
+
+This project is licensed under the MIT License.
+
+## Star History
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="
+      https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date&theme=dark
+    "
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="
+      https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date
+    "
+  />
+  <img
+    alt="Star History Chart"
+    src="https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date"
+  />
+</picture>

@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-template"
+dynamic = ["version"]
+authors = [{ name = "shenmishajing", email = "shenmishajing@gmail.com" }]
+description = "A template project based on lightning-template."
+readme = "README.md"
+license = { text = "MIT License" }
+requires-python = ">=3.8"
+dependencies = [
+    "lightning-template>=1.5",
+    "speed-benchmark",
+    "shell-command-launcher",
+    "mmengine",
+    "openai==0.28.0",
+    "pandas",
+    "transformers",
+    "rdkit",
+    "git+https://github.com/RyanWangZf/pytrial.git@main",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Natural Language :: Chinese (Simplified)",
+]
+
+[project.optional-dependencies]
+optional = ["wandb", "rich", "thop"]
+dev = ["pre-commit", "commitizen"]
+doc = [
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-book-theme",
+    "sphinx-autoapi",
+    "myst-parser",
+    "sphinx_design",
+]
+build = ["build"]
+test = ["tox", "pytest", "pytest-cov"]
+profile = ["torch_tb_profiler"]
+all = ["project-template[optional,dev,doc,build,test,profile]"]
+
+[project.urls]
+Homepage = "https://github.com/shenmishajing/project_template"
+Repository = "https://github.com/shenmishajing/project_template"
+Documentation = "https://shenmishajing-project-template.readthedocs.io"
+Issues = "https://github.com/shenmishajing/project_template/issues"
+Changelog = "https://github.com/shenmishajing/project_template/blob/main/docs/get_started/changelog.md"
+
+[tool.setuptools_scm]
+version_file = "src/project/version.py"
+local_scheme = "dirty-tag"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-q --doctest-modules --doctest-glob='*.md' --doctest-continue-on-failure"
+testpaths = ["tests", "docs"]
+
+[tool.coverage]
+[tool.coverage.run]
+omit = ['__init__.py', 'version.py', 'tests/*', 'docs/*', '.venv/*']
+
+[tool.coverage.report]
+skip_empty = true
+skip_covered = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+annotated_tag = true
+version_scheme = "pep440"
+version_provider = "scm"
+changelog_file = "docs/get_started/changelog.md"
+update_changelog_on_bump = true
