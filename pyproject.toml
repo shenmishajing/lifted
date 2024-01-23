@@ -19,7 +19,7 @@ dependencies = [
     "pandas",
     "transformers",
     "rdkit",
-    "git+https://github.com/RyanWangZf/pytrial.git@main",
+    "pytrial@git+https://github.com/RyanWangZf/pytrial.git@main",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
