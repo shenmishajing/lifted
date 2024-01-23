@@ -43,17 +43,17 @@ def xmlfile2results(data_root, xml_file, drug_to_smiles_data_path):
 
     try:
         status = root.find("overall_status").text
-    except:
+    except Exception:
         status = ""
 
     try:
         why_stop = root.find("why_stopped").text
-    except:
+    except Exception:
         why_stop = ""
 
     try:
         phase = root.find("phase").text
-    except:
+    except Exception:
         phase = ""
     diseases = [i.text for i in root.findall("condition")]  ### disease
 
@@ -68,7 +68,7 @@ def xmlfile2results(data_root, xml_file, drug_to_smiles_data_path):
 
     try:
         criteria = root.find("eligibility").find("criteria").find("textblock").text
-    except:
+    except Exception:
         criteria = ""
 
     smiless = []
@@ -81,7 +81,7 @@ def xmlfile2results(data_root, xml_file, drug_to_smiles_data_path):
 
     try:
         brief_summary = root.find("brief_summary").find("textblock").text
-    except:
+    except Exception:
         brief_summary = ""
 
     return [

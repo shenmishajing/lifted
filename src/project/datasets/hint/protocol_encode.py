@@ -11,10 +11,8 @@ from tqdm import tqdm
 def clean_protocol(protocol):
     protocol = protocol.lower()
     protocol_split = protocol.split("\n")
-    filter_out_empty_fn = lambda x: len(x.strip()) > 0
-    strip_fn = lambda x: x.strip()
-    protocol_split = list(filter(filter_out_empty_fn, protocol_split))
-    protocol_split = list(map(strip_fn, protocol_split))
+    protocol_split = list(filter(lambda x: len(x.strip()) > 0, protocol_split))
+    protocol_split = list(map(lambda x: x.strip(), protocol_split))
     return protocol_split
 
 
@@ -75,7 +73,7 @@ def save_sentence_bert_dict_pkl(
     # def text2vec(text):
     #     return biobert.sentence_vector(text)
 
-    protocol_sentence_2_embedding = dict()
+    protocol_sentence_2_embedding = {}
     for sentence in tqdm(cleaned_sentence_set):
         protocol_sentence_2_embedding[sentence] = (
             model(**tokenizer(sentence, return_tensors="pt").to("cuda"))

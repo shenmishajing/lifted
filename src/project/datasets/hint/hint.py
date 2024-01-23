@@ -10,9 +10,7 @@ from transformers import AutoTokenizer
 
 
 class HINTDataset(BaseDataset):
-    """
-    HINT dataset.
-    """
+    """HINT dataset."""
 
     def __init__(
         self,

@@ -101,14 +101,14 @@ def fit_modal(
             json.dump(result, open(os.path.join(output_path, f"{i}.json"), "w"))
 
 
-def hint(datasets, metrics, datas, no_bootstrap_test, *args, **kwargs):
+def hint(datasets, metrics, data, no_bootstrap_test, *args, **kwargs):
     model = HINT(highway_num_layer=2, epoch=5, lr=1e-3)
     model.fit(datasets["train"], datasets["valid"])
 
     result = {}
     for split in ["valid", "test"]:
         preds = model.predict(datasets[split])
-        target = datas[split][["nctid", "label"]].set_index("nctid").to_dict("split")
+        target = data[split][["nctid", "label"]].set_index("nctid").to_dict("split")
         target = {k: v[0] for k, v in zip(target["index"], target["data"])}
         target = torch.tensor([target[k[0]] for k in preds])
         preds = torch.tensor([k[1] for k in preds])
@@ -191,13 +191,13 @@ def main():
     args = argparse()
 
     for phase in args.phase.split(","):
-        datas = {
+        data = {
             s: load_trial_outcome_data(phase=phase, split=s)["data"]
             for s in ["train", "valid", "test"]
         }
 
-        for split in datas:
-            datas[split] = datas[split].dropna(axis=0, subset=["criteria"])
+        for split in data:
+            data[split] = data[split].dropna(axis=0, subset=["criteria"])
 
         for model in args.model.split(","):
             if model == "summary":
@@ -233,9 +233,9 @@ def main():
                 open(os.path.join(output_path, f"{phase}.txt"), "w").write(res_string)
             else:
                 if model == "hint":
-                    datasets = {k: TrialOutcomeDatasetBase(v) for k, v in datas.items()}
+                    datasets = {k: TrialOutcomeDatasetBase(v) for k, v in data.items()}
                 else:
-                    datasets = {k: TrialOutcomeDataset(v) for k, v in datas.items()}
+                    datasets = {k: TrialOutcomeDataset(v) for k, v in data.items()}
 
                 fit_modal(
                     model,
@@ -246,7 +246,7 @@ def main():
                     output_path=os.path.join(args.output_path, "details"),
                     datasets=datasets,
                     metrics=metrics,
-                    datas=datas,
+                    data=data,
                 )
 
 

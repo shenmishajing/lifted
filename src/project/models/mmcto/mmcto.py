@@ -218,7 +218,7 @@ class MMCTO(nn.Module):
         return losses
 
     def forward(self, data):
-        datas = {}
+        features = {}
         losses = {}
 
         embedding_index = -1
@@ -226,7 +226,7 @@ class MMCTO(nn.Module):
         if "criteria" in self.input_parts:
             key = "criteria"
             feature = self.encoders[key](data[key])
-            datas[key] = feature
+            features[key] = feature
 
             if self.augment_prob > 0:
                 lamb = self.generate_random_lambda(data[key])
@@ -266,7 +266,7 @@ class MMCTO(nn.Module):
                 **data[key], embedding_index=embedding_index
             )
             feature = self.encode(embedding, attetion_mask, key)
-            datas[key] = feature
+            features[key] = feature
 
             if self.augment_prob > 0:
                 lamb = self.generate_random_lambda(embedding)
@@ -309,7 +309,7 @@ class MMCTO(nn.Module):
                 continue
             embedding_index += 1
 
-            datas[key] = []
+            features[key] = []
             losses[f"{key}_contrastive_loss"] = []
             losses[f"{key}_consistency_loss"] = []
             losses[f"{key}_inverse_consistency_loss"] = []
@@ -318,7 +318,7 @@ class MMCTO(nn.Module):
                     **cur_data, embedding_index=embedding_index
                 )
                 feature = self.encode(embedding, attetion_mask, key).mean(dim=0)[None]
-                datas[key].append(feature)
+                features[key].append(feature)
 
                 if self.augment_prob > 0:
                     lamb = self.generate_random_lambda(embedding)
@@ -361,7 +361,7 @@ class MMCTO(nn.Module):
                     ).items():
                         losses[k].append(v)
 
-            datas[key] = torch.cat(datas[key])
+            features[key] = torch.cat(features[key])
 
             for k in [
                 "contrastive_loss",
@@ -376,7 +376,7 @@ class MMCTO(nn.Module):
         if not self.pretrain:
             aux_losses = {
                 part: self.aux_loss(
-                    self.sigmod(fc(datas[part])).squeeze(-1), data["label"].float()
+                    self.sigmod(fc(features[part])).squeeze(-1), data["label"].float()
                 )
                 for part, fc in self.aux_loss_fc.items()
             }
@@ -396,7 +396,7 @@ class MMCTO(nn.Module):
             if self.moe_method == "weighted":
                 gate_data = (
                     self.gate_fc(
-                        torch.cat([datas[p] for p in self.gate_input_parts], dim=-1)
+                        torch.cat([features[p] for p in self.gate_input_parts], dim=-1)
                     )
                     * self.piror[None]
                 )
@@ -411,15 +411,15 @@ class MMCTO(nn.Module):
                     }
                 gate_data = (
                     gate_data[:, None]
-                    * torch.stack([datas[p] for p in self.final_input_parts], dim=-1)
+                    * torch.stack([features[p] for p in self.final_input_parts], dim=-1)
                 ).sum(-1)
             elif self.moe_method == "mean":
                 gate_data = torch.stack(
-                    [datas[p] for p in self.final_input_parts], dim=-1
+                    [features[p] for p in self.final_input_parts], dim=-1
                 ).mean(dim=-1)
             elif self.moe_method == "concat":
                 gate_data = torch.cat(
-                    [datas[p] for p in self.final_input_parts], dim=-1
+                    [features[p] for p in self.final_input_parts], dim=-1
                 )
 
             losses.update({f"{k}_aux_loss": v for k, v in aux_losses.items()})
