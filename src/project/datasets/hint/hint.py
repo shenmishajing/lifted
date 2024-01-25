@@ -35,16 +35,16 @@ class HINTDataset(BaseDataset):
             max_lengths = dict(
                 table=1625,
                 summarization=265,
-                smiless=1627,
-                smiless_concat=1075,
-                smiless_summarization=1182,
-                drugs=54,
-                drugs_concat=193,
-                drugs_summarization=285,
+                description=381,
                 diseases=38,
                 diseases_concat=461,
                 diseases_summarization=560,
-                description=381,
+                drugs=54,
+                drugs_concat=193,
+                drugs_summarization=285,
+                smiless=1627,
+                smiless_concat=1075,
+                smiless_summarization=1182,
             )
         self.max_lengths = max_lengths
         self.augment = augment
@@ -82,6 +82,47 @@ class HINTDataset(BaseDataset):
 
         return res
 
+    def load_table_data(self):
+        if os.path.exists(
+            os.path.join(self.data_prefix["table_path"], f"{self.ann_file_name}.json")
+        ):
+            return json.load(
+                open(
+                    os.path.join(
+                        self.data_prefix["table_path"], f"{self.ann_file_name}.json"
+                    ),
+                )
+            )
+
+    def load_summarization_data(self):
+        if os.path.exists(
+            os.path.join(
+                self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
+            )
+        ):
+            return json.load(
+                open(
+                    os.path.join(
+                        self.data_prefix["summarization_path"],
+                        f"{self.ann_file_name}.json",
+                    ),
+                )
+            )
+
+    def load_drug_description_data(self):
+        if os.path.exists(self.data_prefix["drug_description_path"]):
+            return json.load(open(self.data_prefix["drug_description_path"]))
+
+    def load_criteria_data(self):
+        if os.path.exists(self.data_prefix["criteria_path"]):
+            return torch.from_numpy(
+                np.load(
+                    os.path.join(
+                        self.data_prefix["criteria_path"], f"{self.ann_file_name}.npy"
+                    )
+                )
+            )
+
     def load_data_list(self):
         def tokenize(text, max_length):
             return self.tokenizer(
@@ -98,52 +139,10 @@ class HINTDataset(BaseDataset):
             os.path.join(self.data_prefix["data_path"], f"{self.ann_file_name}.csv")
         )
 
-        data_path = os.path.join(
-            self.data_prefix["table_path"], f"{self.ann_file_name}.json"
-        )
-        if os.path.exists(data_path):
-            table_data = json.load(
-                open(
-                    os.path.join(
-                        self.data_prefix["table_path"], f"{self.ann_file_name}.json"
-                    ),
-                )
-            )
-        else:
-            table_data = None
-
-        data_path = os.path.join(
-            self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
-        )
-        if os.path.exists(data_path):
-            summarization_data = json.load(
-                open(
-                    os.path.join(
-                        self.data_prefix["summarization_path"],
-                        f"{self.ann_file_name}.json",
-                    ),
-                )
-            )
-        else:
-            summarization_data = None
-
-        if os.path.exists(self.data_prefix["drug_description_path"]):
-            drug_description = json.load(
-                open(self.data_prefix["drug_description_path"])
-            )
-        else:
-            drug_description = None
-
-        if os.path.exists(self.data_prefix["criteria_path"]):
-            criteria_data = torch.from_numpy(
-                np.load(
-                    os.path.join(
-                        self.data_prefix["criteria_path"], f"{self.ann_file_name}.npy"
-                    )
-                )
-            )
-        else:
-            criteria_data = None
+        table_data = self.load_table_data()
+        summarization_data = self.load_summarization_data()
+        drug_description = self.load_drug_description_data()
+        criteria_data = self.load_criteria_data()
 
         data_list = []
         for i, row in data.iterrows():
@@ -161,7 +160,7 @@ class HINTDataset(BaseDataset):
 
             for name in ["smiless", "drugs", "diseases"]:
                 if name in row:
-                    d = list(set(eval(row[name])))
+                    d = sorted(set(eval(row[name])))
                     if not d:
                         flag = False
                         continue
@@ -211,8 +210,8 @@ def main():
     labels = {}
     for phase in ["I", "II", "III"]:
         labels[phase] = {}
-        # for split in ["train", "valid", "test"]:
-        for split in ["test"]:
+        for split in ["train", "valid", "test"]:
+            # for split in ["test"]:
             labels[phase][split] = [0, 0]
             dataset = HINTDataset(
                 ann_file_name=f"phase_{phase}_{split}",
@@ -221,12 +220,8 @@ def main():
             for i in range(len(dataset)):
                 data = dataset[i]
                 for name in data:
-                    if name in ["label", "sample_idx"]:
-                        continue
-                    # max_length[name] = max(
-                    #     data[name].data["input_ids"].shape[-1], max_length[name]
-                    # )
-                    max_length[name].append(data[name].data["input_ids"].shape[-1])
+                    if name not in ["label", "sample_idx", "idx", "criteria"]:
+                        max_length[name].append(data[name].data["input_ids"].shape[-1])
                 labels[phase][split][data["label"].item()] += 1
             labels[phase][split] = labels[phase][split][1] / sum(labels[phase][split])
     for name in max_length:
