@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0 (2024-01-31)
+
+### Feat
+
+- **config-files**: add config files for base mmcto
+- **mmcto**: add some feature for mmcto
+- **hint**: add smiless transformer modality for hint dataset, move tokenizer to collect fn
+
+### Refactor
+
+- **update_evaluator**: use the metrics param
+
 ## 1.0.0 (2024-01-23)
 
 ### Refactor
