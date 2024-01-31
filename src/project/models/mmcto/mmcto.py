@@ -1,17 +1,21 @@
 import math
+from collections import defaultdict
 
 import torch
 import torch.nn.functional as F
 from torch import nn
+from transformers import AutoModel
 
 
 class MMCTO(nn.Module):
     def __init__(
         self,
         encoders: nn.Module,
+        smoe_encoder: nn.Module,
+        smiless_transformer_encoder="seyonec/ChemBERTa-zinc-base-v1",
         final_input_parts=None,
         gate_input_parts=None,
-        aux_loss_parts=None,
+        aux_loss=False,
         aux_loss_share_fc=False,
         weighted_aux_loss=False,
         moe_method="weighted",
@@ -34,10 +38,6 @@ class MMCTO(nn.Module):
             final_input_parts = ["table", "summarization", "smiless", "description"]
         if gate_input_parts is None:
             gate_input_parts = ["drugs", "diseases"]
-        if aux_loss_parts is None:
-            aux_loss_parts = []
-        else:
-            aux_loss_parts = [p for p in aux_loss_parts if p in final_input_parts]
         self.input_parts = set(final_input_parts + gate_input_parts)
         self.final_input_parts = final_input_parts
         self.gate_input_parts = gate_input_parts
@@ -63,20 +63,44 @@ class MMCTO(nn.Module):
             if key not in self.input_parts:
                 del self.encoders[key]
 
+        self.smoe_encoder = smoe_encoder
+
+        self.smiless_transformer_encoder = {
+            k: nn.ModuleList(
+                [
+                    AutoModel.from_pretrained(smiless_transformer_encoder),
+                    nn.Linear(768, model_dim),
+                ]
+            )
+            for k in [
+                f"smiless_transformer{p}" for p in ["", "_concat", "_summarization"]
+            ]
+            if k in self.input_parts
+        }
+
+        if self.smiless_transformer_encoder:
+            self.smiless_transformer_encoder = nn.ModuleDict(
+                self.smiless_transformer_encoder
+            )
+
         if "criteria" in self.input_parts:
             self.encoders["criteria"] = nn.Sequential(
                 nn.Linear(768 * 2, model_dim), nn.ReLU(), nn.LayerNorm(model_dim)
             )
 
-        if aux_loss_share_fc:
-            aux_loss_fc = nn.Linear(model_dim, num_labels)
-            self.aux_loss_fc = nn.ModuleDict(
-                {part: aux_loss_fc for part in aux_loss_parts}
-            )
-        else:
-            self.aux_loss_fc = nn.ModuleDict(
-                {part: nn.Linear(model_dim, num_labels) for part in aux_loss_parts}
-            )
+        if aux_loss:
+            if aux_loss_share_fc:
+                aux_loss_fc = nn.Linear(model_dim, num_labels)
+                self.aux_loss_fc = nn.ModuleDict(
+                    {part: aux_loss_fc for part in final_input_parts}
+                )
+            else:
+                self.aux_loss_fc = nn.ModuleDict(
+                    {
+                        part: nn.Linear(model_dim, num_labels)
+                        for part in final_input_parts
+                    }
+                )
         if not self.pretrain:
             if moe_method == "weighted":
                 self.gate_fc = nn.Linear(
@@ -187,9 +211,10 @@ class MMCTO(nn.Module):
             return (1 - lamb) * embedding + lamb * disturb_embedding
 
     def encode(self, embedding, attetion_mask, key):
-        return self.encoders[key](embedding, src_key_padding_mask=attetion_mask)[
-            :, 0, ...
-        ]
+        feature, importance_loss = self.smoe_encoder(
+            self.encoders[key](embedding, src_key_padding_mask=attetion_mask)
+        )
+        return feature[:, 0], importance_loss
 
     def calculate_consistency_and_contrastive_loss(
         self,
@@ -223,8 +248,8 @@ class MMCTO(nn.Module):
 
         embedding_index = -1
 
-        if "criteria" in self.input_parts:
-            key = "criteria"
+        key = "criteria"
+        if key in self.input_parts:
             feature = self.encoders[key](data[key])
             features[key] = feature
 
@@ -253,6 +278,13 @@ class MMCTO(nn.Module):
                     )
                 )
 
+        for key in [f"smiless_transformer_{p}" for p in ["concat", "summarization"]]:
+            if key in self.input_parts:
+                feature = self.smiless_transformer_encoder[key][0](**data[key])
+                features[key] = self.smiless_transformer_encoder[key][1](
+                    feature.pooler_output
+                )
+
         for key in ["table", "summarization"] + [
             f"{k}_{p}"
             for k in ["smiless", "drugs", "diseases"]
@@ -265,7 +297,8 @@ class MMCTO(nn.Module):
             embedding, attetion_mask = self.add_embedding(
                 **data[key], embedding_index=embedding_index
             )
-            feature = self.encode(embedding, attetion_mask, key)
+            feature, importance_loss = self.encode(embedding, attetion_mask, key)
+            losses[f"{key}_importance_loss"] = importance_loss
             features[key] = feature
 
             if self.augment_prob > 0:
@@ -275,23 +308,30 @@ class MMCTO(nn.Module):
                     **data["augment"][key], embedding_index=embedding_index
                 )
                 if self.contrastive_loss or self.inverse_consistency_loss:
-                    aug_feature = self.encode(aug_embedding, aug_attetion_mask, key)
-                    aug_disturbed_feature = self.encode(
+                    aug_feature, aug_importance_loss = self.encode(
+                        aug_embedding, aug_attetion_mask, key
+                    )
+                    losses[f"{key}_aug_importance_loss"] = aug_importance_loss
+                    aug_disturbed_feature, aug_disturbed_importance_loss = self.encode(
                         self.disturb_embedding(aug_embedding, lamb, embedding),
                         aug_attetion_mask,
                         key,
                     )
+                    losses[
+                        f"{key}_aug_disturbed_importance_loss"
+                    ] = aug_disturbed_importance_loss
                 else:
                     aug_feature = None
                     aug_disturbed_feature = None
 
                 del aug_attetion_mask
 
-                disturbed_feature = self.encode(
+                disturbed_feature, disturbed_importance_loss = self.encode(
                     self.disturb_embedding(embedding, lamb, aug_embedding),
                     attetion_mask,
                     key,
                 )
+                losses[f"{key}_disturbed_importance_loss"] = disturbed_importance_loss
                 del aug_embedding, embedding, attetion_mask, lamb
 
                 losses.update(
@@ -310,15 +350,15 @@ class MMCTO(nn.Module):
             embedding_index += 1
 
             features[key] = []
-            losses[f"{key}_contrastive_loss"] = []
-            losses[f"{key}_consistency_loss"] = []
-            losses[f"{key}_inverse_consistency_loss"] = []
+            cur_losses = defaultdict(list)
             for batch_idx, cur_data in enumerate(data[key]):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
                 )
-                feature = self.encode(embedding, attetion_mask, key).mean(dim=0)[None]
+                feature, importance_loss = self.encode(embedding, attetion_mask, key)
+                feature = feature.mean(dim=0, keepdim=True)
                 features[key].append(feature)
+                cur_losses[f"{key}_importance_loss"].append(importance_loss)
 
                 if self.augment_prob > 0:
                     lamb = self.generate_random_lambda(embedding)
@@ -334,22 +374,36 @@ class MMCTO(nn.Module):
 
                     if self.contrastive_loss or self.inverse_consistency_loss:
                         aug_attetion_mask = aug_attetion_mask[aug_idx]
-                        aug_feature = self.encode(
+                        aug_feature, aug_importance_loss = self.encode(
                             aug_embedding, aug_attetion_mask, key
-                        ).mean(dim=0)[None]
-                        aug_disturbed_feature = self.encode(
+                        )
+                        aug_feature = aug_feature.mean(dim=0, keepdim=True)
+                        cur_losses[f"{key}_aug_importance_loss"].append(
+                            aug_importance_loss
+                        )
+                        (
+                            aug_disturbed_feature,
+                            aug_disturbed_importance_loss,
+                        ) = self.encode(
                             self.disturb_embedding(aug_embedding, lamb, embedding),
                             aug_attetion_mask,
                             key,
-                        ).mean(dim=0)[None]
+                        )
+                        aug_disturbed_feature = aug_disturbed_feature.mean(
+                            dim=0, keepdim=True
+                        )
+                        cur_losses[f"{key}_aug_disturbed_importance_loss"].append(
+                            aug_disturbed_importance_loss
+                        )
                     else:
                         del aug_attetion_mask
 
-                    disturbed_feature = self.encode(
+                    disturbed_feature, disturbed_importance_loss = self.encode(
                         self.disturb_embedding(embedding, lamb, aug_embedding),
                         attetion_mask,
                         key,
-                    ).mean(dim=0)[None]
+                    )
+                    disturbed_feature = disturbed_feature.mean(dim=0, keepdim=True)
                     del aug_embedding, embedding, attetion_mask, lamb
 
                     for k, v in self.calculate_consistency_and_contrastive_loss(
@@ -359,19 +413,16 @@ class MMCTO(nn.Module):
                         aug_feature,
                         aug_disturbed_feature,
                     ).items():
-                        losses[k].append(v)
+                        cur_losses[k].append(v)
 
             features[key] = torch.cat(features[key])
 
-            for k in [
-                "contrastive_loss",
-                "consistency_loss",
-                "inverse_consistency_loss",
-            ]:
-                if losses[f"{key}_{k}"]:
-                    losses[f"{key}_{k}"] = torch.stack(losses[f"{key}_{k}"]).mean()
+            for k, v in cur_losses.items():
+                if v:
+                    cur_losses[k] = torch.stack(v).mean()
                 else:
-                    del losses[f"{key}_{k}"]
+                    del cur_losses[k]
+            losses.update(cur_losses)
 
         if not self.pretrain:
             aux_losses = {
