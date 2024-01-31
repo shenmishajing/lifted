@@ -9,7 +9,7 @@ __import__:
                     nhead: 128
                     activation: relu
                     batch_first: true
-            num_layers: 2
+            num_layers: 1
 
 model:
     class_path: project.models.LightningModule
@@ -23,15 +23,40 @@ model:
                         modules:
                             table: *encoder
                             summarization: *encoder
-                            smiless: *encoder
                             description: *encoder
-                            drugs: *encoder
+                            criteria: *encoder
                             diseases: *encoder
-                            smiless_summarization: *encoder
-                            drugs_summarization: *encoder
+                            diseases_concat: *encoder
                             diseases_summarization: *encoder
-                final_input_parts: [table, smiless, description]
-                gate_input_parts: [drugs, diseases]
+                            drugs: *encoder
+                            drugs_concat: *encoder
+                            drugs_summarization: *encoder
+                            smiless: *encoder
+                            smiless_concat: *encoder
+                            smiless_summarization: *encoder
+                smoe_encoder:
+                    class_path: project.models.mmcto.SparseMOELayer
+                    init_args:
+                        expert_cfg:
+                            class_path: project.models.mmcto.FeedForwardLayer
+                            init_args:
+                                input_dim: 128
+                                hidden_dim: 128
+                                output_dim: 128
+                        num_experts: 16
+                        topk: 3
+                        input_dim: 128
+                final_input_parts:
+                    [
+                        summarization,
+                        description,
+                        criteria,
+                        diseases_concat,
+                        drugs_concat,
+                        smiless_concat,
+                        smiless_transformer_concat,
+                    ]
+                gate_input_parts: [drugs_concat, diseases_concat]
                 # augment_prob:
                 #     table: 0.5
                 #     summarization: 0.5

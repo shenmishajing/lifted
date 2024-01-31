@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_aux-loss-weighted.yaml
+    - mmcto_aux-loss-share-fc.yaml

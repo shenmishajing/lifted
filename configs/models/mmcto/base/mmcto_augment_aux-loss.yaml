@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_aux-loss.yaml
+    - mmcto_augment.yaml
