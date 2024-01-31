@@ -8,6 +8,39 @@ import torch
 from mmengine.dataset import BaseDataset
 from transformers import AutoTokenizer
 
+Tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+SMILESTokenizer = AutoTokenizer.from_pretrained("seyonec/ChemBERTa-zinc-base-v1")
+
+MaxLength = dict(
+    table=1625,
+    summarization=265,
+    description=381,
+    diseases=38,
+    diseases_concat=461,
+    diseases_summarization=560,
+    drugs=54,
+    drugs_concat=193,
+    drugs_summarization=285,
+    smiless=1627,
+    smiless_concat=1075,
+    smiless_summarization=1182,
+    smiless_transformer=512,
+    smiless_transformer_concat=512,
+    smiless_transformer_summarization=512,
+)
+
+
+def tokenize(tokenizer, text, max_length=None):
+    return tokenizer(
+        text,
+        # padding=True,
+        padding="max_length",
+        truncation=True,
+        max_length=max_length,
+        return_tensors="pt",
+        return_token_type_ids=False,
+    )
+
 
 class HINTDataset(BaseDataset):
     """HINT dataset."""
@@ -16,8 +49,6 @@ class HINTDataset(BaseDataset):
         self,
         data_prefix=None,
         ann_file_name=None,
-        max_lengths=None,
-        tokenizer="bert-base-cased",
         augment=False,
         **kwargs,
     ):
@@ -31,25 +62,8 @@ class HINTDataset(BaseDataset):
                 criteria_path="criteria",
             )
 
-        if max_lengths is None:
-            max_lengths = dict(
-                table=1625,
-                summarization=265,
-                description=381,
-                diseases=38,
-                diseases_concat=461,
-                diseases_summarization=560,
-                drugs=54,
-                drugs_concat=193,
-                drugs_summarization=285,
-                smiless=1627,
-                smiless_concat=1075,
-                smiless_summarization=1182,
-            )
-        self.max_lengths = max_lengths
         self.augment = augment
 
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
         super().__init__(data_prefix=data_prefix, **kwargs)
 
     @staticmethod
@@ -63,17 +77,38 @@ class HINTDataset(BaseDataset):
 
             for name in ["table", "summarization"] + [
                 f"{k}_{p}"
-                for k in ["smiless", "drugs", "diseases"]
+                for k in ["smiless", "smiless_transformer", "drugs", "diseases"]
                 for p in ["concat", "summarization"]
             ]:
                 if name in batch[0]:
-                    res[name] = {}
-                    for k in batch[0][name]:
-                        res[name][k] = torch.cat([b[name][k] for b in batch], dim=0)
+                    res[name] = tokenize(
+                        Tokenizer
+                        if "smiless_transformer" not in name
+                        else SMILESTokenizer,
+                        [b[name] for b in batch],
+                        MaxLength[name],
+                    )
 
-            for name in ["smiless", "drugs", "diseases", "description", "idx"]:
+            for name in [
+                "smiless",
+                "smiless_transformer",
+                "drugs",
+                "diseases",
+                "description",
+            ]:
                 if name in batch[0]:
-                    res[name] = [b[name] for b in batch]
+                    res[name] = [
+                        tokenize(
+                            Tokenizer
+                            if "smiless_transformer" not in name
+                            else SMILESTokenizer,
+                            b[name],
+                            MaxLength[name],
+                        )
+                        for b in batch
+                    ]
+
+            res["idx"] = torch.tensor([b["idx"] for b in batch])
             return res
 
         res = collate(batch)
@@ -124,17 +159,6 @@ class HINTDataset(BaseDataset):
             )
 
     def load_data_list(self):
-        def tokenize(text, max_length):
-            return self.tokenizer(
-                text,
-                # padding=True,
-                padding="max_length",
-                truncation=True,
-                max_length=max_length,
-                return_tensors="pt",
-                return_token_type_ids=False,
-            )
-
         data = pd.read_csv(
             os.path.join(self.data_prefix["data_path"], f"{self.ann_file_name}.csv")
         )
@@ -164,33 +188,36 @@ class HINTDataset(BaseDataset):
                     if not d:
                         flag = False
                         continue
-                    cur_data[name] = tokenize(d, self.max_lengths[name])
-                    d = ",".join(d)
-                    cur_data[f"{name}_concat"] = tokenize(
-                        d, self.max_lengths[f"{name}_concat"]
-                    )
+
+                    cur_data[name] = d
+                    cur_data[f"{name}_concat"] = ",".join(d)
                     if summarization_data:
-                        cur_data[f"{name}_summarization"] = tokenize(
-                            f"{name}: {d}; summarization: {summarization_data[i]}",
-                            self.max_lengths[f"{name}_summarization"],
-                        )
+                        cur_data[
+                            f"{name}_summarization"
+                        ] = f"{name}: {','.join(d)}; summarization: {summarization_data[i]}"
+
+                    if name == "smiless":
+                        name = "smiless_transformer"
+                        cur_data[name] = d
+                        cur_data[f"{name}_concat"] = ",".join(d)
+                        if summarization_data:
+                            cur_data[
+                                f"{name}_summarization"
+                            ] = f"{name}: {','.join(d)}; summarization: {summarization_data[i]}"
 
             for name, name_data in zip(
                 ["table", "summarization"], [table_data, summarization_data]
             ):
                 if name_data:
-                    cur_data[name] = tokenize(name_data[i], self.max_lengths[name])
+                    cur_data[name] = name_data[i]
 
             if drug_description:
-                cur_data["description"] = tokenize(
-                    [
-                        drug_description[drug_name]
-                        if drug_name in drug_description and drug_description[drug_name]
-                        else "This is a drug."
-                        for drug_name in eval(row["drugs"])
-                    ],
-                    self.max_lengths["description"],
-                )
+                cur_data["description"] = [
+                    drug_description[drug_name]
+                    if drug_name in drug_description and drug_description[drug_name]
+                    else "This is a drug."
+                    for drug_name in eval(row["drugs"])
+                ]
 
             if flag:
                 data_list.append(cur_data)
