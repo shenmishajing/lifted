@@ -64,31 +64,7 @@ class LightningModule(_LightningModule):
         return result
 
     def on_predict_epoch_start(self) -> None:
-        if self.trainer.ckpt_path:
-            output_path = os.path.join(
-                "results",
-                "visualization",
-                os.path.basename(
-                    os.path.dirname(
-                        os.path.dirname(os.path.dirname(self.trainer.ckpt_path))
-                    )
-                ),
-            )
-        else:
-            output_path = None
-
-        for name in self.predict_tasks:
-            if self.predict_tasks[name] is None:
-                if output_path is None:
-                    raise ValueError(
-                        "predict_path is None, please set predict_path or pass ckpt_path"
-                    )
-
-                self.predict_tasks[name] = output_path
-
-            self.predict_tasks[name] = os.path.join(self.predict_tasks[name], name)
-            self.rm_and_create(self.predict_tasks[name])
-
+        super().on_predict_epoch_start()
         self.hidden_states = defaultdict(list)
 
     def predict_forward(self, *args, **kwargs):
@@ -116,7 +92,7 @@ class LightningModule(_LightningModule):
         pickle.dump(
             self.hidden_states,
             open(
-                os.path.join(self.predict_tasks["hidden_state"], "all.pkl"),
+                os.path.join(self.predict_path, "hidden_state", "all.pkl"),
                 "wb",
             ),
         )
@@ -133,7 +109,7 @@ class LightningModule(_LightningModule):
         pickle.dump(
             self.hidden_states,
             open(
-                os.path.join(self.predict_tasks["hidden_state"], "top10.pkl"),
+                os.path.join(self.predict_path, "hidden_state", "top10.pkl"),
                 "wb",
             ),
         )
@@ -146,12 +122,12 @@ class LightningModule(_LightningModule):
         ).iloc[self.hidden_states["idx"]]
 
         data.to_csv(
-            os.path.join(self.predict_tasks["hidden_state"], "top10.csv"),
+            os.path.join(self.predict_path, "hidden_state", "top10.csv"),
             index=False,
         )
 
         moe_weight_output_path = os.path.join(
-            self.predict_tasks["hidden_state"], "moe_weights"
+            self.predict_path, "hidden_state", "moe_weights"
         )
         os.makedirs(moe_weight_output_path, exist_ok=True)
 
