@@ -46,23 +46,30 @@ model:
                         num_experts: 16
                         topk: 3
                         input_dim: 128
-                final_input_parts:
-                    [
+                final_input_parts: [
                         summarization,
                         description,
                         criteria,
                         diseases_concat,
                         drugs_concat,
-                        smiless_concat,
+                        # smiless_concat,
                         smiless_transformer_concat,
                     ]
                 gate_input_parts: [drugs_concat, diseases_concat]
-                # augment_prob:
-                #     table: 0.5
-                #     summarization: 0.5
-                #     smiless: 0.5
-                #     description: 0.5
-                #     drugs: 0.5
-                #     diseases: 0.5
                 vocab_size: 28996
                 model_dim: 128
+
+data:
+    init_args:
+        dataset_cfg:
+            fit:
+                init_args:
+                    input_parts: [
+                            summarization,
+                            description,
+                            criteria,
+                            diseases_concat,
+                            drugs_concat,
+                            # smiless_concat,
+                            smiless_transformer_concat,
+                        ]
