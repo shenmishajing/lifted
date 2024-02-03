@@ -50,6 +50,7 @@ class HINTDataset(BaseDataset):
         data_prefix=None,
         ann_file_name=None,
         augment=False,
+        input_parts=None,
         **kwargs,
     ):
         self.ann_file_name = ann_file_name
@@ -63,6 +64,17 @@ class HINTDataset(BaseDataset):
             )
 
         self.augment = augment
+        if input_parts is None:
+            input_parts = [
+                "summarization",
+                "description",
+                "criteria",
+                "diseases_concat",
+                "drugs_concat",
+                "smiless_concat",
+                "smiless_transformer_concat",
+            ]
+        self.input_parts = input_parts
 
         super().__init__(data_prefix=data_prefix, **kwargs)
 
@@ -118,7 +130,7 @@ class HINTDataset(BaseDataset):
         return res
 
     def load_table_data(self):
-        if os.path.exists(
+        if "table" in self.input_parts and os.path.exists(
             os.path.join(self.data_prefix["table_path"], f"{self.ann_file_name}.json")
         ):
             return json.load(
@@ -130,7 +142,7 @@ class HINTDataset(BaseDataset):
             )
 
     def load_summarization_data(self):
-        if os.path.exists(
+        if "summarization" in self.input_parts and os.path.exists(
             os.path.join(
                 self.data_prefix["summarization_path"], f"{self.ann_file_name}.json"
             )
@@ -145,11 +157,15 @@ class HINTDataset(BaseDataset):
             )
 
     def load_drug_description_data(self):
-        if os.path.exists(self.data_prefix["drug_description_path"]):
+        if "description" in self.input_parts and os.path.exists(
+            self.data_prefix["drug_description_path"]
+        ):
             return json.load(open(self.data_prefix["drug_description_path"]))
 
     def load_criteria_data(self):
-        if os.path.exists(self.data_prefix["criteria_path"]):
+        if "criteria" in self.input_parts and os.path.exists(
+            self.data_prefix["criteria_path"]
+        ):
             return torch.from_numpy(
                 np.load(
                     os.path.join(
@@ -157,6 +173,20 @@ class HINTDataset(BaseDataset):
                     )
                 )
             )
+
+    def add_list_data(self, name, list_data, summarization_data=None):
+        data = {}
+        if name in self.input_parts:
+            data[name] = list_data
+
+        if f"{name}_concat" in self.input_parts:
+            data[f"{name}_concat"] = ",".join(list_data)
+
+        if f"{name}_summarization" and summarization_data:
+            data[
+                f"{name}_summarization"
+            ] = f"{name}: {','.join(list_data)}; summarization: {summarization_data}"
+        return data
 
     def load_data_list(self):
         data = pd.read_csv(
@@ -189,21 +219,22 @@ class HINTDataset(BaseDataset):
                         flag = False
                         continue
 
-                    cur_data[name] = d
-                    cur_data[f"{name}_concat"] = ",".join(d)
-                    if summarization_data:
-                        cur_data[
-                            f"{name}_summarization"
-                        ] = f"{name}: {','.join(d)}; summarization: {summarization_data[i]}"
+                    cur_data.update(
+                        self.add_list_data(
+                            name,
+                            d,
+                            summarization_data[i] if summarization_data else None,
+                        )
+                    )
 
                     if name == "smiless":
-                        name = "smiless_transformer"
-                        cur_data[name] = d
-                        cur_data[f"{name}_concat"] = ",".join(d)
-                        if summarization_data:
-                            cur_data[
-                                f"{name}_summarization"
-                            ] = f"{name}: {','.join(d)}; summarization: {summarization_data[i]}"
+                        cur_data.update(
+                            self.add_list_data(
+                                "smiless_transformer",
+                                d,
+                                summarization_data[i] if summarization_data else None,
+                            )
+                        )
 
             for name, name_data in zip(
                 ["table", "summarization"], [table_data, summarization_data]
