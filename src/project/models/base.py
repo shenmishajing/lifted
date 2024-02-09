@@ -3,6 +3,7 @@ import pickle
 from collections import defaultdict
 
 import pandas as pd
+import seaborn as sns
 import torch
 from lightning_template import LightningModule as _LightningModule
 from matplotlib import pyplot as plt
@@ -81,11 +82,22 @@ class LightningModule(_LightningModule):
         self.hidden_states["error"].append(
             (metric_dict["preds"] - metric_dict["target"]).abs().cpu()
         )
-        self.hidden_states["idx"].extend(batch["idx"])
+        self.hidden_states["idx"].extend(batch["idx"].cpu())
+        for k, v in hidden_state_dict["smoe_weights"].items():
+            if isinstance(v, list):
+                v = torch.stack([item[0] for item in v])
+            hidden_state_dict["smoe_weights"][k] = v.cpu()
+
+        self.hidden_states["smoe_weights"].extend(
+            [
+                {k: v[i] for k, v in hidden_state_dict["smoe_weights"].items()}
+                for i in range(len(batch["idx"]))
+            ]
+        )
 
     def on_predict_epoch_end(self) -> None:
         for key in self.hidden_states:
-            if key in ["idx", "input_parts", "piror"]:
+            if key in ["idx", "input_parts", "piror", "smoe_weights"]:
                 continue
             self.hidden_states[key] = torch.cat(self.hidden_states[key], dim=0)
 
@@ -97,11 +109,11 @@ class LightningModule(_LightningModule):
             ),
         )
 
-        idx = self.hidden_states["error"].topk(10, dim=0).indices
+        idx = self.hidden_states["error"].topk(10, largest=False, dim=0).indices
         for key in self.hidden_states:
             if key in ["input_parts", "piror"]:
                 continue
-            elif key == "idx":
+            elif key in ["idx", "smoe_weights"]:
                 self.hidden_states[key] = [self.hidden_states[key][i] for i in idx]
             else:
                 self.hidden_states[key] = self.hidden_states[key][idx]
@@ -126,6 +138,11 @@ class LightningModule(_LightningModule):
             index=False,
         )
 
+        smoe_weight_output_path = os.path.join(
+            self.predict_path, "hidden_state", "smoe_weights"
+        )
+        os.makedirs(smoe_weight_output_path, exist_ok=True)
+
         moe_weight_output_path = os.path.join(
             self.predict_path, "hidden_state", "moe_weights"
         )
@@ -137,13 +154,22 @@ class LightningModule(_LightningModule):
                 label_type="edge",
             )
             plt.savefig(output_path)
-            plt.cla()
+            plt.clf()
 
         def plot_moe_weights(data, labels, output_path):
             plt.pie(data, labels=labels, autopct="%1.1f%%")
             plt.axis("equal")
             plt.savefig(output_path)
-            plt.cla()
+            plt.clf()
+
+        def plot_smoe_weights(data, output_path):
+            df_smoe_weights = pd.DataFrame(data) * 100
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(df_smoe_weights, annot=True, fmt=".1f", cmap="YlGnBu")
+            plt.ylabel("Expert")
+            plt.xlabel("Modality")
+            plt.savefig(output_path)
+            plt.clf()
 
         plot_moe_piror(
             self.hidden_states["piror"],
@@ -156,4 +182,20 @@ class LightningModule(_LightningModule):
                 moe_weights,
                 self.hidden_states["input_parts"],
                 os.path.join(moe_weight_output_path, f"{i}.png"),
+            )
+
+        for i, smoe_weights in enumerate(self.hidden_states["smoe_weights"]):
+            keys = [
+                "summarization",
+                "drugs",
+                "diseases",
+                "criteria",
+                "smiless_transformer_concat",
+                "description",
+            ]
+            smoe_weights = {k: smoe_weights[k] for k in keys}
+            if "smiless_transformer_concat" in smoe_weights:
+                smoe_weights["smiless"] = smoe_weights.pop("smiless_transformer_concat")
+            plot_smoe_weights(
+                smoe_weights, os.path.join(smoe_weight_output_path, f"{i}.png")
             )

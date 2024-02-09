@@ -11,7 +11,7 @@ class MMCTO(nn.Module):
     def __init__(
         self,
         encoders: nn.Module,
-        smoe_encoder: nn.Module,
+        smoe_encoder: nn.Module = None,
         smiless_transformer_encoder="seyonec/ChemBERTa-zinc-base-v1",
         final_input_parts=None,
         gate_input_parts=None,
@@ -211,10 +211,14 @@ class MMCTO(nn.Module):
             return (1 - lamb) * embedding + lamb * disturb_embedding
 
     def encode(self, embedding, attetion_mask, key):
-        feature, importance_loss = self.smoe_encoder(
-            self.encoders[key](embedding, src_key_padding_mask=attetion_mask)
-        )
-        return feature[:, 0], importance_loss
+        feature = self.encoders[key](embedding, src_key_padding_mask=attetion_mask)
+        if self.smoe_encoder is not None:
+            return self.smoe_encoder(feature[:, 0])
+        return {
+            "logits": feature[:, 0],
+            "importance_loss": feature.new_zeros([]),
+            "importances": feature.new_zeros([]),
+        }
 
     def calculate_consistency_and_contrastive_loss(
         self,
@@ -243,6 +247,10 @@ class MMCTO(nn.Module):
         return losses
 
     def forward(self, data):
+        hidden_states = {
+            "input_parts": self.final_input_parts,
+            "smoe_weights": {},
+        }
         features = {}
         losses = {}
 
@@ -251,6 +259,11 @@ class MMCTO(nn.Module):
         key = "criteria"
         if key in self.input_parts:
             feature = self.encoders[key](data[key])
+            if self.smoe_encoder is not None:
+                feature = self.smoe_encoder(feature)
+                losses[f"{key}_importance_loss"] = feature["importance_loss"]
+                hidden_states["smoe_weights"][key] = feature["importances"]
+                feature = feature["logits"]
             features[key] = feature
 
             if self.augment_prob > 0:
@@ -261,6 +274,24 @@ class MMCTO(nn.Module):
                     aug_disturbed_feature = self.encoders[key](
                         self.disturb_embedding(data["augment"][key], lamb, data[key])
                     )
+                    if self.smoe_encoder is not None:
+                        aug_feature = self.smoe_encoder(aug_feature)
+                        losses[f"{key}_aug_importance_loss"] = aug_feature[
+                            "importance_loss"
+                        ]
+                        hidden_states["smoe_weights"][f"{key}_aug"] = aug_feature[
+                            "importances"
+                        ]
+                        aug_feature = aug_feature["logits"]
+                        aug_disturbed_feature = self.smoe_encoder(aug_disturbed_feature)
+                        losses[
+                            f"{key}_aug_disturbed_importance_loss"
+                        ] = aug_disturbed_feature["importance_loss"]
+                        hidden_states["smoe_weights"][
+                            f"{key}_aug_disturbed"
+                        ] = aug_disturbed_feature["importances"]
+                        aug_disturbed_feature = aug_disturbed_feature["logits"]
+
                 else:
                     aug_feature = None
                     aug_disturbed_feature = None
@@ -268,6 +299,15 @@ class MMCTO(nn.Module):
                 disturbed_feature = self.encoders[key](
                     self.disturb_embedding(data[key], lamb, data["augment"][key])
                 )
+                if self.smoe_encoder is not None:
+                    disturbed_feature = self.smoe_encoder(disturbed_feature)
+                    losses[f"{key}_disturbed_importance_loss"] = disturbed_feature[
+                        "importance_loss"
+                    ]
+                    hidden_states["smoe_weights"][
+                        f"{key}_disturbed"
+                    ] = disturbed_feature["importances"]
+                    disturbed_feature = disturbed_feature["logits"]
                 losses.update(
                     self.calculate_consistency_and_contrastive_loss(
                         key,
@@ -281,9 +321,15 @@ class MMCTO(nn.Module):
         for key in [f"smiless_transformer_{p}" for p in ["concat", "summarization"]]:
             if key in self.input_parts:
                 feature = self.smiless_transformer_encoder[key][0](**data[key])
-                features[key] = self.smiless_transformer_encoder[key][1](
+                feature = self.smiless_transformer_encoder[key][1](
                     feature.pooler_output
                 )
+                if self.smoe_encoder is not None:
+                    feature = self.smoe_encoder(feature)
+                    losses[f"{key}_importance_loss"] = feature["importance_loss"]
+                    hidden_states["smoe_weights"][key] = feature["importances"]
+                    feature = feature["logits"]
+                features[key] = feature
 
         for key in ["table", "summarization"] + [
             f"{k}_{p}"
@@ -297,9 +343,10 @@ class MMCTO(nn.Module):
             embedding, attetion_mask = self.add_embedding(
                 **data[key], embedding_index=embedding_index
             )
-            feature, importance_loss = self.encode(embedding, attetion_mask, key)
-            losses[f"{key}_importance_loss"] = importance_loss
-            features[key] = feature
+            encode_result = self.encode(embedding, attetion_mask, key)
+            losses[f"{key}_importance_loss"] = encode_result["importance_loss"]
+            features[key] = encode_result["logits"]
+            hidden_states["smoe_weights"][key] = encode_result["importances"]
 
             if self.augment_prob > 0:
                 lamb = self.generate_random_lambda(embedding)
@@ -308,39 +355,52 @@ class MMCTO(nn.Module):
                     **data["augment"][key], embedding_index=embedding_index
                 )
                 if self.contrastive_loss or self.inverse_consistency_loss:
-                    aug_feature, aug_importance_loss = self.encode(
+                    aug_encode_result = self.encode(
                         aug_embedding, aug_attetion_mask, key
                     )
-                    losses[f"{key}_aug_importance_loss"] = aug_importance_loss
-                    aug_disturbed_feature, aug_disturbed_importance_loss = self.encode(
+                    losses[f"{key}_aug_importance_loss"] = aug_encode_result[
+                        "importance_loss"
+                    ]
+                    hidden_states["smoe_weights"][f"{key}_aug"] = aug_encode_result[
+                        "importances"
+                    ]
+                    aug_disturbed_encode_result = self.encode(
                         self.disturb_embedding(aug_embedding, lamb, embedding),
                         aug_attetion_mask,
                         key,
                     )
                     losses[
                         f"{key}_aug_disturbed_importance_loss"
-                    ] = aug_disturbed_importance_loss
+                    ] = aug_disturbed_encode_result["importance_loss"]
+                    hidden_states["smoe_weights"][
+                        f"{key}_aug_disturbed"
+                    ] = aug_disturbed_encode_result["importances"]
                 else:
-                    aug_feature = None
-                    aug_disturbed_feature = None
+                    aug_encode_result = defaultdict(lambda: None)
+                    aug_disturbed_encode_result = defaultdict(lambda: None)
 
                 del aug_attetion_mask
 
-                disturbed_feature, disturbed_importance_loss = self.encode(
+                disturbed_encode_result = self.encode(
                     self.disturb_embedding(embedding, lamb, aug_embedding),
                     attetion_mask,
                     key,
                 )
-                losses[f"{key}_disturbed_importance_loss"] = disturbed_importance_loss
+                losses[f"{key}_disturbed_importance_loss"] = disturbed_encode_result[
+                    "importance_loss"
+                ]
+                hidden_states["smoe_weights"][
+                    f"{key}_disturbed"
+                ] = disturbed_encode_result["importances"]
                 del aug_embedding, embedding, attetion_mask, lamb
 
                 losses.update(
                     self.calculate_consistency_and_contrastive_loss(
                         key,
-                        feature,
-                        disturbed_feature,
-                        aug_feature,
-                        aug_disturbed_feature,
+                        encode_result["logits"],
+                        disturbed_encode_result["logits"],
+                        aug_encode_result["logits"],
+                        aug_disturbed_encode_result["logits"],
                     )
                 )
 
@@ -351,14 +411,20 @@ class MMCTO(nn.Module):
 
             features[key] = []
             cur_losses = defaultdict(list)
+            cur_importances = defaultdict(list)
             for batch_idx, cur_data in enumerate(data[key]):
                 embedding, attetion_mask = self.add_embedding(
                     **cur_data, embedding_index=embedding_index
                 )
-                feature, importance_loss = self.encode(embedding, attetion_mask, key)
-                feature = feature.mean(dim=0, keepdim=True)
-                features[key].append(feature)
-                cur_losses[f"{key}_importance_loss"].append(importance_loss)
+                encode_result = self.encode(embedding, attetion_mask, key)
+                encode_result["logits"] = encode_result["logits"].mean(
+                    dim=0, keepdim=True
+                )
+                features[key].append(encode_result["logits"])
+                cur_losses[f"{key}_importance_loss"].append(
+                    encode_result["importance_loss"]
+                )
+                cur_importances[key].append(encode_result["importances"])
 
                 if self.augment_prob > 0:
                     lamb = self.generate_random_lambda(embedding)
@@ -374,44 +440,60 @@ class MMCTO(nn.Module):
 
                     if self.contrastive_loss or self.inverse_consistency_loss:
                         aug_attetion_mask = aug_attetion_mask[aug_idx]
-                        aug_feature, aug_importance_loss = self.encode(
+                        aug_encode_result = self.encode(
                             aug_embedding, aug_attetion_mask, key
                         )
-                        aug_feature = aug_feature.mean(dim=0, keepdim=True)
-                        cur_losses[f"{key}_aug_importance_loss"].append(
-                            aug_importance_loss
+                        aug_encode_result["logits"] = aug_encode_result["logits"].mean(
+                            dim=0, keepdim=True
                         )
-                        (
-                            aug_disturbed_feature,
-                            aug_disturbed_importance_loss,
-                        ) = self.encode(
+                        cur_losses[f"{key}_aug_importance_loss"].append(
+                            aug_encode_result["importance_loss"]
+                        )
+                        cur_importances[f"{key}_aug"].append(
+                            aug_encode_result["importances"]
+                        )
+
+                        aug_disturbed_encode_result = self.encode(
                             self.disturb_embedding(aug_embedding, lamb, embedding),
                             aug_attetion_mask,
                             key,
                         )
-                        aug_disturbed_feature = aug_disturbed_feature.mean(
+                        aug_disturbed_encode_result[
+                            "logits"
+                        ] = aug_disturbed_encode_result["logits"].mean(
                             dim=0, keepdim=True
                         )
                         cur_losses[f"{key}_aug_disturbed_importance_loss"].append(
-                            aug_disturbed_importance_loss
+                            aug_disturbed_encode_result["importance_loss"]
+                        )
+                        cur_importances[f"{key}_aug_disturbed"].append(
+                            aug_disturbed_encode_result["importances"]
                         )
                     else:
                         del aug_attetion_mask
 
-                    disturbed_feature, disturbed_importance_loss = self.encode(
+                    disturbed_encode_result = self.encode(
                         self.disturb_embedding(embedding, lamb, aug_embedding),
                         attetion_mask,
                         key,
                     )
-                    disturbed_feature = disturbed_feature.mean(dim=0, keepdim=True)
+                    disturbed_encode_result["logits"] = disturbed_encode_result[
+                        "logits"
+                    ].mean(dim=0, keepdim=True)
+                    cur_losses[f"{key}_disturbed_importance_loss"].append(
+                        disturbed_encode_result["importance_loss"]
+                    )
+                    cur_importances[f"{key}_disturbed"].append(
+                        disturbed_encode_result["importances"]
+                    )
                     del aug_embedding, embedding, attetion_mask, lamb
 
                     for k, v in self.calculate_consistency_and_contrastive_loss(
                         key,
-                        feature,
-                        disturbed_feature,
-                        aug_feature,
-                        aug_disturbed_feature,
+                        encode_result["logits"],
+                        disturbed_encode_result["logits"],
+                        aug_encode_result["logits"],
+                        aug_disturbed_encode_result["logits"],
                     ).items():
                         cur_losses[k].append(v)
 
@@ -423,6 +505,7 @@ class MMCTO(nn.Module):
                 else:
                     del cur_losses[k]
             losses.update(cur_losses)
+            hidden_states["smoe_weights"].update(cur_importances)
 
         if not self.pretrain:
             aux_losses = {
@@ -431,10 +514,7 @@ class MMCTO(nn.Module):
                 )
                 for part, fc in self.aux_loss_fc.items()
             }
-            hidden_states = {
-                "input_parts": self.final_input_parts,
-                "aux_losses": aux_losses,
-            }
+            hidden_states["aux_losses"] = aux_losses
             if self.weighted_aux_loss:
                 if self.moe_method != "weighted":
                     aux_losses = {
@@ -481,7 +561,6 @@ class MMCTO(nn.Module):
             metrics = {"preds": pred, "target": data["label"]}
         else:
             metrics = {}
-            hidden_states = {}
 
         return {
             "loss_dict": losses,

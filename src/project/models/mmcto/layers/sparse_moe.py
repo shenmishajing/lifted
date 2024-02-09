@@ -29,8 +29,8 @@ class SparseMOELayer(nn.Module):
         self.topk = topk
 
     def forward(self, x):
-        gate = self.gate(x[:, 0])
-        gate = gate + torch.randn_like(gate) * self.act(self.gate_noise(x[:, 0]))
+        gate = self.gate(x)
+        gate = gate + torch.randn_like(gate) * self.act(self.gate_noise(x))
         expert_weights, expert_ind = gate.topk(self.topk, dim=-1)
         expert_weights = expert_weights.softmax(dim=-1)
 
@@ -40,12 +40,19 @@ class SparseMOELayer(nn.Module):
         for i in range(len(expert_ind)):
             cur_res = []
             for j in range(len(expert_ind[i])):
-                cur_res.append(self.experts[expert_ind[i][j]](x[i, 0]))
+                cur_res.append(self.experts[expert_ind[i][j]](x[i]))
                 importances[expert_ind[i, j]] += expert_weights[i, j]
-            cur_res = torch.stack(cur_res) * expert_weights[i, :, None, None]
+            cur_res = torch.stack(cur_res) * expert_weights[i, :, None]
             res.append(cur_res.sum(dim=0))
         res = torch.stack(res)
 
         importance_loss = (importances.std() / importances.mean()) ** 2
 
-        return res, importance_loss
+        importances = gate.new_zeros(gate.shape)
+        importances.scatter_(-1, expert_ind, expert_weights)
+
+        return {
+            "logits": res,
+            "importance_loss": importance_loss,
+            "importances": importances,
+        }
