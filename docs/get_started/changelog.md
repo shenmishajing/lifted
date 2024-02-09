@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0 (2024-02-09)
+
+### Feat
+
+- **some-weights**: add draw some weights feature
+- **mmcto-config**: add input parts config
+- **hint**: add input parts feature for hint dataset
+
+### Fix
+
+- **base-model**: fix predict path bug
+
 ## 1.1.0 (2024-01-31)
 
 ### Feat

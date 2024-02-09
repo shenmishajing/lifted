@@ -14,7 +14,7 @@ SMILESTokenizer = AutoTokenizer.from_pretrained("seyonec/ChemBERTa-zinc-base-v1"
 MaxLength = dict(
     table=1625,
     summarization=265,
-    description=381,
+    description=7,
     diseases=38,
     diseases_concat=461,
     diseases_summarization=560,
@@ -66,13 +66,14 @@ class HINTDataset(BaseDataset):
         self.augment = augment
         if input_parts is None:
             input_parts = [
+                "table",
                 "summarization",
                 "description",
                 "criteria",
-                "diseases_concat",
-                "drugs_concat",
-                "smiless_concat",
-                "smiless_transformer_concat",
+            ] + [
+                f"{k}{p}"
+                for k in ["smiless", "smiless_transformer", "drugs", "diseases"]
+                for p in ["", "_concat", "_summarization"]
             ]
         self.input_parts = input_parts
 
@@ -277,9 +278,37 @@ def main():
             )
             for i in range(len(dataset)):
                 data = dataset[i]
+                if any(d != "This is a drug." for d in data["description"]):
+                    data = {
+                        k: v
+                        for k, v in data.items()
+                        if k
+                        in [
+                            "smiless",
+                            "drugs",
+                            "diseases",
+                            "summarization",
+                            "description",
+                        ]
+                    }
+                    print(data)
                 for name in data:
                     if name not in ["label", "sample_idx", "idx", "criteria"]:
-                        max_length[name].append(data[name].data["input_ids"].shape[-1])
+                        tokenizer = (
+                            Tokenizer
+                            if "smiless_transformer" not in name
+                            else SMILESTokenizer
+                        )
+                        max_length[name].append(
+                            tokenizer(
+                                data[name],
+                                padding=True,
+                                return_tensors="pt",
+                                return_token_type_ids=False,
+                            )
+                            .data["input_ids"]
+                            .shape[-1]
+                        )
                 labels[phase][split][data["label"].item()] += 1
             labels[phase][split] = labels[phase][split][1] / sum(labels[phase][split])
     for name in max_length:
