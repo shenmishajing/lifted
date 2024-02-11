@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 (2024-02-11)
+
+### Feat
+
+- **config**: add 1x, 2x and 3x config files
+- **no-summarization**: add no-summarization config
+
 ## 1.2.0 (2024-02-09)
 
 ### Feat
