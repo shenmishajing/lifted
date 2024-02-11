@@ -1,0 +1,3 @@
+__base__:
+    - mmcto_no-summarization_aux-loss.yaml
+    - mmcto_no-summarization_augment-cos-loss.yaml
