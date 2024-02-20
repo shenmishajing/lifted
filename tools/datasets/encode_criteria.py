@@ -151,10 +151,10 @@ def protocol2feature(protocol, sentence_2_vec):
 
 
 def main():
-    # save_sentence_bert_dict_pkl(
-    #     "data/clinical-trial-outcome-prediction/data/raw_data.csv",
-    #     "data/clinical-trial-outcome-prediction/data/sentence2embedding.pkl",
-    # )
+    save_sentence_bert_dict_pkl(
+        "data/clinical-trial-outcome-prediction/data/raw_data.csv",
+        "data/clinical-trial-outcome-prediction/data/sentence2embedding.pkl",
+    )
     prepare_criteria_feature()
 
 

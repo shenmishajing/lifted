@@ -1,52 +1,132 @@
-# Project Template
+# LIFTED
 
-This template project is based on [pytorch lightning](https://pytorch-lightning.readthedocs.io/en/stable/) and [lightning-template](https://github.com/shenmishajing/lightning_template). Please read the docs of them before using this template.
+This is the coder for the paper:
+
+[Multimodal Clinical Trial Outcome Prediction with Large Language Models](https://arxiv.org/abs/2402.06512)
+
+We propose an approach called muLti-modal mIx-of-experts For ouTcome prEDiction (LIFTED), which extracts information from different modalities with a transformer based unified encoder, enhances the extracted features by a Sparse Mixture-of-Experts framework and integrates multimodal information with Mixture-of-Experts, releasing the limitations of the extensibility to adapt new modalities and improving the ability to discern similar information patterns across different modalities.
+
+<figure>
+<img src = "docs/figure/model.png">
+<figcaption align = "center">
+An overview of our framework, LIFTED.
+</figcaption>
+</figure>
 
 ## Installation
 
-See [installation docs](docs/get_started/installation.md) for details.
+We recommend you use `conda` to install this project and all required packages with the specific version to recurrent our experiments and results of them. The following commands can be used to install this project and all required packages.
 
-## Prepare
+```bash
+conda env create -f requirements/conda.yml -n <env_name>
+conda activate <env_name>
+pip install -e .
+```
 
-See [prepare docs](docs/prepare/prepare.md) for details.
+See the [installation docs](docs/get_started/installation.md) for details.
+
+## Setup
+
+### API key
+
+You have to set the following API keys before running experiments.
+
+#### Wandb
+
+We use Wandb as our logger, so you have to create an account and login with your API key before running experiments.
+
+```bash
+wandb login
+### paste your api key
+```
+
+#### OpenAI API key
+
+We use OpenAI API to generate summaries. You have to set your API key to call the ChatGPT 3.5 API.
+
+```bash
+echo <your-openai-key> > openai_api_key.txt
+```
+
+### Datasets
+
+We put all the datasets under the `data` directory. You can create it under the root directory of this project with the following command.
+
+```bash
+mkdir data
+```
+
+#### Hint
+
+Download the Hint dataset to the `data` directory.
+
+```bash
+git clone https://github.com/futianfan/clinical-trial-outcome-prediction.git data/clinical-trial-outcome-prediction
+```
+
+### Criteria
+
+Prepare the criteria data by running the following command.
+
+```bash
+python tools/datasets/encode_criteria.py
+```
+
+### LLM output
+
+Run the following command to generate the summarization output from the LLM model.
+
+```bash
+python tools/datasets/convert_datasets.py --tasks hint_summary
+```
 
 ## Usage
 
-All our experiments run through a command line script called `cli`. You can refer to the [cli doc](https://github.com/shenmishajing/lightning_template/blob/main/docs/tools/cli.md) from [lightning-template](https://github.com/shenmishajing/lightning_template) for more details.
+### Training
 
-## Experiment
+You can train the model with the following command.
 
-See [experiment docs](docs/experiments/experiments.md) for details.
+```bash
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/path/to/config.yaml
+```
+where the `configs/path/to/config.yaml` is the path to the config file you want to use. For instance, run the following command to train the mmcto model with data augment and auxiliary loss features on the phase I dataset.
+
+```bash
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml
+```
+
+### Evaluation
+
+You can evaluate your model trained in the previous step on validation or test dataset with the following command.
+
+```bash
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli {validate, test} --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/ckpt/<run_id>/checkpoints/<ckpt_name>.ckpt
+```
+where the `{validate, test}` determines the dataset you want to evaluate on, and the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to evaluate.
+
+### Prediction
+
+You can predict the outcome of the clinical trials and plot the weights of the Sparse Mixture-of-Experts and Mixture-of-Experts modules with the following command.
+
+```bash
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli predict --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/ckpt/<run_id>/checkpoints/<ckpt_name>.ckpt
+```
+
+Similarly, the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to predict.
 
 ## Contribution
 
 See [contribution docs](docs/get_started/contribution.md) for details.
 
-## Release versions
+## Citation
 
-We use [setuptools_scm](https://github.com/pypa/setuptools_scm/) for versioning. For the versions available, see the [tags](https://github.com/shenmishajing/project_template/tags) on this repository.
+If you find this repo is helpful to your research, please consider citing our paper:
 
-## License
-
-This project is licensed under the MIT License.
-
-## Star History
-
-<picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="
-      https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date&theme=dark
-    "
-  />
-  <source
-    media="(prefers-color-scheme: light)"
-    srcset="
-      https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date
-    "
-  />
-  <img
-    alt="Star History Chart"
-    src="https://api.star-history.com/svg?repos=shenmishajing/project_template&type=Date"
-  />
-</picture>
+```bibtex
+@article{zheng2024multimodal,
+  title={Multimodal Clinical Trial Outcome Prediction with Large Language Models},
+  author={Zheng, Wenhao and Peng, Dongsheng and Xu, Hongxia and Zhu, Hongtu and Fu, Tianfan and Yao, Huaxiu},
+  journal={arXiv preprint arXiv:2402.06512},
+  year={2024}
+}
+```
