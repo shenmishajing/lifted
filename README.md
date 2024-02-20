@@ -100,7 +100,7 @@ CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/runs/mmcto/base/mmc
 You can evaluate your model trained in the previous step on validation or test dataset with the following command.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli {validate, test} --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/ckpt/<run_id>/checkpoints/<ckpt_name>.ckpt
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli {validate, test} --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
 ```
 where the `{validate, test}` determines the dataset you want to evaluate on, and the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to evaluate.
 
@@ -109,7 +109,7 @@ where the `{validate, test}` determines the dataset you want to evaluate on, and
 You can predict the outcome of the clinical trials and plot the weights of the Sparse Mixture-of-Experts and Mixture-of-Experts modules with the following command.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli predict --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/ckpt/<run_id>/checkpoints/<ckpt_name>.ckpt
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli predict --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
 ```
 
 Similarly, the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to predict.
