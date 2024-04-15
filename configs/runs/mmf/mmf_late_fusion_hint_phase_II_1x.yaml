@@ -1,0 +1,5 @@
+__base__:
+    - ../../default_runtime.yaml
+    - ../../schedules/schedule_1x.yaml
+    - ../../datasets/hint/hint_phase_II.yaml
+    - ../../models/mmf/late_fusion.yaml
