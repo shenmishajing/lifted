@@ -64,7 +64,7 @@ Download the Hint dataset to the `data` directory.
 git clone https://github.com/futianfan/clinical-trial-outcome-prediction.git data/clinical-trial-outcome-prediction
 ```
 
-### Criteria
+##### Criteria
 
 Prepare the criteria data by running the following command.
 
@@ -72,12 +72,20 @@ Prepare the criteria data by running the following command.
 python tools/datasets/encode_criteria.py
 ```
 
-### LLM output
+##### LLM output
 
 Run the following command to generate the summarization output from the LLM model.
 
 ```bash
 python tools/datasets/convert_datasets.py --tasks hint_summary
+```
+
+##### Prepared outputs
+
+We also provide the outputs for the hint dataset. You can use them by running the following command, without generating them by yourself.
+
+```bash
+mv prepared_data/clinical-trial-outcome-prediction/* data/clinical-trial-outcome-prediction/data/
 ```
 
 ## Usage
