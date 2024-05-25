@@ -95,12 +95,12 @@ mv prepared_data/clinical-trial-outcome-prediction/* data/clinical-trial-outcome
 You can train the model with the following command.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/path/to/config.yaml
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config configs/path/to/config.yaml
 ```
 where the `configs/path/to/config.yaml` is the path to the config file you want to use. For instance, run the following command to train the mmcto model with data augment and auxiliary loss features on the phase I dataset.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml
 ```
 
 ### Evaluation
@@ -108,7 +108,7 @@ CUDA_VISIBLE_DEVICES=<gpu_ids> cli fit --config-file configs/runs/mmcto/base/mmc
 You can evaluate your model trained in the previous step on validation or test dataset with the following command.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli {validate, test} --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli {validate, test} --config configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
 ```
 where the `{validate, test}` determines the dataset you want to evaluate on, and the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to evaluate.
 
@@ -117,8 +117,10 @@ where the `{validate, test}` determines the dataset you want to evaluate on, and
 You can predict the outcome of the clinical trials and plot the weights of the Sparse Mixture-of-Experts and Mixture-of-Experts modules with the following command.
 
 ```bash
-CUDA_VISIBLE_DEVICES=<gpu_ids> cli predict --config-file configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
+CUDA_VISIBLE_DEVICES=<gpu_ids> cli predict --config configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml --ckpt_path work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt
 ```
+
+The default output path is the `prediction` folder under the same parent folder as the `checkpoints` folder. Say, in the example, the predictions will be saved in `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/predictions`.
 
 Similarly, the `configs/runs/mmcto/base/mmcto_hint_phase_I_augment_aux-loss_1x.yaml` is the path to the config file you want to use, and the `work_dirs/mmcto_hint_phase_I_augment_aux-loss_1x/<run_id>/checkpoints/<ckpt_name>.ckpt` is the path to the checkpoint you want to predict.
 
