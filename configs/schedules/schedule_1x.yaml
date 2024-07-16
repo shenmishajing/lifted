@@ -8,9 +8,9 @@ optimizer_config:
     scheduler:
       class_path: torch.optim.lr_scheduler.MultiStepLR
       init_args:
-        milestones: [8, 11]
+        milestones: [5, 7]
     warmup_config:
       warmup_iters: 50
 
 trainer:
-  max_epochs: 12
+  max_epochs: 8

@@ -1,0 +1,63 @@
+__import__:
+    encoder: &encoder
+        class_path: torch.nn.TransformerEncoder
+        init_args:
+            encoder_layer:
+                class_path: torch.nn.TransformerEncoderLayer
+                init_args:
+                    d_model: 128
+                    nhead: 128
+                    activation: relu
+                    batch_first: true
+            num_layers: 1
+
+model:
+    class_path: project.models.LightningModule
+    init_args:
+        model:
+            class_path: project.models.mmf.early_fusion.EarlyFusion
+            init_args:
+                encoders:
+                    class_path: torch.nn.ModuleDict
+                    init_args:
+                        modules:
+                            table: *encoder
+                            summarization: *encoder
+                            description: *encoder
+                            criteria: *encoder
+                            diseases: *encoder
+                            diseases_concat: *encoder
+                            diseases_summarization: *encoder
+                            drugs: *encoder
+                            drugs_concat: *encoder
+                            drugs_summarization: *encoder
+                            smiless: *encoder
+                            smiless_concat: *encoder
+                            smiless_summarization: *encoder
+                final_input_parts: [
+                        summarization,
+                        description,
+                        criteria,
+                        diseases,
+                        drugs,
+                        # smiless_concat,
+                        smiless_transformer_concat,
+                    ]
+                gate_input_parts: [drugs, diseases]
+                vocab_size: 28996
+                model_dim: 128
+
+data:
+    init_args:
+        dataset_cfg:
+            fit:
+                init_args:
+                    input_parts: [
+                            summarization,
+                            description,
+                            criteria,
+                            diseases,
+                            drugs,
+                            # smiless,
+                            smiless_transformer_concat,
+                        ]

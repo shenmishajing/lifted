@@ -1,0 +1,26 @@
+__base__: ctod_phase_I.yaml
+
+data:
+    init_args:
+        dataset_cfg:
+            fit:
+                init_args:
+                    ann_file_name: phase_II_${split}
+            val:
+                change_item:
+                    - - 1
+                      - init_args:
+                            ann_file_name: phase_II_valid
+
+            test:
+                class_path: project.datasets.HINTDataset
+                init_args:
+                    ann_file_name: phase_II_test
+                    data_root: data/clinical-trial-outcome-prediction/data
+                    augment: true
+
+trainer:
+    logger:
+        init_args:
+            tags:
+                pre_item: _phase_II

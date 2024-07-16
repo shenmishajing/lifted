@@ -11,8 +11,8 @@ from matplotlib import pyplot as plt
 
 class LightningModule(_LightningModule):
     def __init__(self, bootstrap_num=20, predict_tasks=None, *args, **kwargs) -> None:
-        if predict_tasks is None:
-            predict_tasks = ["hidden_state"]
+        # if predict_tasks is None:
+        #     predict_tasks = ["hidden_state"]
         super().__init__(predict_tasks=predict_tasks, *args, **kwargs)
         self.bootstrap_num = bootstrap_num
 

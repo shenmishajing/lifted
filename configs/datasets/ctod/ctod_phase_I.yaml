@@ -7,19 +7,26 @@ data:
             split_info:
                 split_format_to: [ann_file_name]
                 split_name_map:
+                    fit: train
                     val: valid
                     test: test
                     predict: test
             fit:
-                class_path: project.datasets.HINTDataset
+                class_path: project.datasets.CTODataset
                 init_args:
                     ann_file_name: phase_I_${split}
-                    data_root: data/clinical-trial-outcome-prediction/data
+                    data_root: data/labeling
                     augment: true
             val:
                 - {}
                 - init_args:
+                      ann_file_name: phase_I_valid
+            test:
+                class_path: project.datasets.HINTDataset
+                init_args:
                     ann_file_name: phase_I_test
+                    data_root: data/clinical-trial-outcome-prediction/data
+                    augment: true
         dataloader_cfg:
             batch_size: 1
             # num_workers: 8
@@ -31,4 +38,4 @@ trainer:
     logger:
         init_args:
             tags:
-                pre_item: hint_phase_I
+                pre_item: CTOD_phase_I

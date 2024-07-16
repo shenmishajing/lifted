@@ -41,7 +41,8 @@ def split_protocol(protocol):
 def get_all_protocols(input_file="data/raw_data.csv"):
     with open(input_file, "r") as csvfile:
         rows = list(csv.reader(csvfile, delimiter=","))[1:]
-    protocols = [row[9] for row in rows]
+    # in the ctod dataset, criteria is the last term
+    protocols = [row[-1] for row in rows]
     return protocols
 
 
@@ -96,7 +97,7 @@ def prepare_criteria_feature(
         sentence2vec[k] = sentence2vec[k].cpu()
 
     for phase in tqdm(["I", "II", "III"], desc="phase"):
-        for split in tqdm(["train", "valid", "test"], desc="split"):
+        for split in tqdm(["train", "valid"], desc="split"):
             data = pd.read_csv(
                 open(os.path.join(data_path, f"phase_{phase}_{split}.csv"))
             )
@@ -151,11 +152,15 @@ def protocol2feature(protocol, sentence_2_vec):
 
 
 def main():
-    save_sentence_bert_dict_pkl(
-        "data/clinical-trial-outcome-prediction/data/raw_data.csv",
-        "data/clinical-trial-outcome-prediction/data/sentence2embedding.pkl",
-    )
-    prepare_criteria_feature()
+    # save_sentence_bert_dict_pkl(
+    #     "data/clinical-trial-outcome-prediction/data/raw_data.csv",
+    #     "data/clinical-trial-outcome-prediction/data/sentence2embedding.pkl",
+    # )
+    # save_sentence_bert_dict_pkl(
+    #     input_file="data/labeling/vs_top/all_rf.csv",
+    #     output_file="data/labeling/sentence2embedding.pkl"
+    # )
+    prepare_criteria_feature(data_path="data/labeling")
 
 
 if __name__ == "__main__":

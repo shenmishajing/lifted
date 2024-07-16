@@ -2,8 +2,9 @@ trainer:
   logger:
     class_path: lightning_template.utils.loggers.wandb.WandbNamedLogger
     init_args:
-      project: multi_modal_clinical_trial_outcome_prediction
+      project: clinical_trial_prediction
       save_dir: work_dirs
+      entity: Yaki-team
       offline: false
       tags: []
     # class_path: lightning.pytorch.loggers.TensorBoardLogger

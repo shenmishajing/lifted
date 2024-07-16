@@ -5,12 +5,20 @@ import os
 import pickle
 from string import Template
 from time import sleep
+import openai
+import yaml
 
 import pandas as pd
-from openai import InvalidRequestError
+from openai import BadRequestError
 from tqdm import tqdm
 
-from project.utils import openai
+
+def load_client(key_path="openai_key.yaml"):
+    openai._reset_client()
+    key = yaml.safe_load(open(key_path))
+    for k, v in key.items():
+        setattr(openai, k, v)
+    return openai._load_client()
 
 
 def save_llm_results(llm_results, llm_output_path, name, keys=None):
@@ -81,13 +89,14 @@ def check_llm_results(llm_results):
 
 
 def get_llm_results(inputs, position=0):
+    client = load_client("openai_key.yaml")
     for input in tqdm(inputs, desc="llm", position=position):
         try_num = 0
         while True:
             try:
-                yield input, openai.ChatCompletion.create(**input)
+                yield input, client.chat.completions.create(**input).to_dict()
                 break
-            except InvalidRequestError as e:
+            except BadRequestError as e:
                 if e.code == "context_length_exceeded":
                     if input["model"] == "gpt-3.5-turbo":
                         input["model"] = "gpt-3.5-turbo-16k"
@@ -151,6 +160,18 @@ def convert_table(name, data_path, output_path, chat_kwargs, position=0):
         )
 
 
+def convert_ctod(data_path, output_path, chat_kwargs):
+    for phase in tqdm(["I", "III", "II"], desc="phase", position=0):
+        for split in tqdm(["valid", "train"], desc="split", position=1):
+            convert_table(
+                f"phase_{phase}_{split}",
+                data_path,
+                output_path,
+                copy.deepcopy(chat_kwargs),
+                2,
+            )
+
+
 def convert_hint(data_path, output_path, chat_kwargs):
     for phase in tqdm(["I", "II", "III"], desc="phase", position=0):
         for split in tqdm(["train", "valid", "test"], desc="split", position=1):
@@ -181,6 +202,59 @@ def parse_args():
 
 def main():
     datasets = {
+        "ctod_description": {
+            "func": convert_ctod,
+            "data_path": "data/labeling",
+            "output_path": "text_description",
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            + "diseases: list of disease names.\n"
+            + "icdcodes: list of icd-10 codes of diseases.\n"
+            + "drugs: list of drug names.\n"
+            + "criteria: eligibility criteria.",
+            "chat_kwargs": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "user",
+                        "content": "Here is the schema definition of the table:\n"
+                        + "$schema_definition\n"
+                        + "This is a sample from the table:\n"
+                        + "$linearization\n"
+                        + "Please describe the sample using natural language.",
+                    },
+                ],
+            },
+        },
+        "ctod_summary": {
+            "func": convert_ctod,
+            "data_path": "data/labeling",
+            "output_path": "brief_summary",
+            "schema_definition": "phase: the phase of the trial. phase I, or phase II, or phase III.\n"
+            + "diseases: list of disease names.\n"
+            + "icdcodes: list of icd-10 codes of diseases.\n"
+            + "drugs: list of drug names.\n"
+            + "criteria: eligibility criteria.",
+            "chat_kwargs": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "user",
+                        "content": "Here is the schema definition of the table:\n"
+                        + "$schema_definition\n"
+                        + "This is a sample from the table:\n"
+                        + "$linearization\n"
+                        + "Please briefly summary the sample with its value in one sentence. You should describe the important values, like drugs and diseases, instead of just the name of columns in the table.\n"
+                        + "A brief summary of other sample may look like:\n"
+                        + "This study will test the ability of extended release nifedipine (Procardia XL), a blood pressure medication, to permit a decrease in the dose of glucocorticoid medication children take to treat congenital adrenal hyperplasia (CAH).\n"
+                        + "Note that the example is not a summary of the sample above.\n",
+                    },
+                ],
+            },
+        },
         "hint": {
             "func": convert_hint,
             "data_path": "data/clinical-trial-outcome-prediction/data",
