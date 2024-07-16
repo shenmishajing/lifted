@@ -1,4 +1,4 @@
-__base__: hint_phase_I.yaml
+__base__: ctod_phase_I.yaml
 
 data:
     init_args:
