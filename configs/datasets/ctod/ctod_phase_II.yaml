@@ -23,4 +23,4 @@ trainer:
     logger:
         init_args:
             tags:
-                pre_item: _phase_II
+                pre_item: CTOD_phase_II
