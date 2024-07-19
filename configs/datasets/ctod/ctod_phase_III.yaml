@@ -10,16 +10,10 @@ data:
                 change_item:
                     - - 1
                       - init_args:
-                            ann_file_name: phase_III_valid
-            test:
-                class_path: project.datasets.HINTDataset
-                init_args:
-                    ann_file_name: phase_III_test
-                    data_root: data/clinical-trial-outcome-prediction/data
-                    augment: true
+                            ann_file_name: phase_III_test
 
 trainer:
     logger:
         init_args:
             tags:
-                pre_item: CTOD_phase_III
+                pre_item: CTOD_phase_III_new

@@ -18,15 +18,18 @@ data:
                     data_root: data/labeling
                     augment: true
             val:
-                - {}
+                - class_path: project.datasets.HINTDataset
+                  init_args:
+                      data_root: data/clinical-trial-outcome-prediction/data
                 - init_args:
-                      ann_file_name: phase_I_valid
-            test:
-                class_path: project.datasets.HINTDataset
-                init_args:
-                    ann_file_name: phase_I_test
-                    data_root: data/clinical-trial-outcome-prediction/data
-                    augment: true
+                      ann_file_name: phase_I_test
+            # val:
+            #     class_path: project.datasets.HINTDataset
+            #     init_args:
+            #         ann_file_name: phase_I_test
+            #         data_root: data/clinical-trial-outcome-prediction/data
+            #         augment: true
+
         dataloader_cfg:
             batch_size: 1
             # num_workers: 8
@@ -38,4 +41,4 @@ trainer:
     logger:
         init_args:
             tags:
-                pre_item: CTOD_phase_I
+                pre_item: CTOD_phase_I_new
