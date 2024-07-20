@@ -1,0 +1,11 @@
+__base__:
+    - ../../default_runtime.yaml
+    - ../../schedules/schedule_1x.yaml
+    - ../../datasets/ctod/ctod_phase_I.yaml
+    - ../../models/mmf/middle_fusion.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+             - ctod_early_phase_I
