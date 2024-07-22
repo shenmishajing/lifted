@@ -1,0 +1,11 @@
+__base__:
+    - ../../../default_runtime.yaml
+    - ../../../schedules/schedule_1x.yaml
+    - ../../../datasets/ctod/ctod_phase_II.yaml
+    - ../../../models/mmcto/base/mmcto_augment.yaml
+
+trainer:
+    logger:
+        init_args:
+            tags:
+             - ctod_with-aug_phase_II
