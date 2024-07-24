@@ -101,6 +101,9 @@ class MMCTO(nn.Module):
                         for part in final_input_parts
                     }
                 )
+        else:
+            self.aux_loss_fc = {}
+
         if not self.pretrain:
             if moe_method == "weighted":
                 self.gate_fc = nn.Linear(
@@ -470,7 +473,10 @@ class MMCTO(nn.Module):
                             aug_disturbed_encode_result["importances"]
                         )
                     else:
-                        del aug_attetion_mask
+                        aug_encode_result = defaultdict(lambda: None)
+                        aug_disturbed_encode_result = defaultdict(lambda: None)
+
+                    del aug_attetion_mask
 
                     disturbed_encode_result = self.encode(
                         self.disturb_embedding(embedding, lamb, aug_embedding),
