@@ -1,0 +1,8 @@
+__base__: ctod_phase_I.yaml
+
+optimizer_config:
+    lr_scheduler:
+        scheduler:
+            init_args:
+                T_max: 164
+        interval: step
